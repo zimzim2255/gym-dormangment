@@ -405,62 +405,89 @@ function Dashboard() {
   );
 }
 
+const FUNCTIONS_URL = import.meta.env.VITE_SUPABASE_URL + "/functions/v1";
+
+async function api(type: string, data?: any) {
+  try {
+    const res = await fetch(`${FUNCTIONS_URL}/member-manager`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}` },
+      body: JSON.stringify({ type, ...data }),
+    });
+    if (res.ok) return await res.json();
+    throw new Error("API error");
+  } catch { return null; }
+}
+
 // ─── MEMBERS ─────────────────────────────────────────────────────────────────
 
 type Member = typeof MEMBERS[number];
 
 function Members() {
   const [search, setSearch] = useState("");
-  const [members, setMembers] = useState<Member[]>(MEMBERS);
+  const [members, setMembers] = useState<Member[]>([]);
   const [showAdd, setShowAdd] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
   const [form, setForm] = useState<Member>({
-    id: "",
-    name: "",
-    phone: "",
-    cin: "",
-    gender: "Homme",
-    dob: "",
-    joined: "",
-    status: "Actif",
-    email: "",
-    address: "",
-    emergencyContact: "",
-    emergencyPhone: "",
-    photo: "",
+    id: "", name: "", phone: "", cin: "", gender: "Homme", dob: "",
+    joined: "", status: "Actif", email: "", address: "",
+    emergencyContact: "", emergencyPhone: "", photo: "",
   });
   const [editForm, setEditForm] = useState<Member>(form);
 
+  // Load members from Supabase on mount
+  useEffect(() => {
+    (async () => {
+      const data = await api("list");
+      if (data?.members) {
+        setMembers(data.members.map((m: any) => ({
+          id: m.id, name: m.name, phone: m.phone || "",
+          cin: m.cin || "", gender: m.gender || "Homme",
+          dob: m.dob || "", joined: m.joined || "", status: m.status,
+          email: m.email || "", address: m.address || "",
+          emergencyContact: m.emergency_contact || "",
+          emergencyPhone: m.emergency_phone || "",
+          photo: m.photo || "",
+        })));
+      }
+    })();
+  }, []);
+
   const filtered = members.filter(m =>
-    m.name.toLowerCase().includes(search.toLowerCase()) ||
-    m.id.toLowerCase().includes(search.toLowerCase()) ||
-    m.phone.includes(search)
+    m.name?.toLowerCase().includes(search.toLowerCase()) ||
+    m.id?.toLowerCase().includes(search.toLowerCase()) ||
+    m.phone?.includes(search)
   );
 
-  const handleAdd = () => {
-    const id = form.id || `ADH${String(members.length + 1).padStart(3, "0")}`;
-    setMembers([{ ...form, id, joined: form.joined || new Date().toLocaleDateString("fr-FR") }, ...members]);
-    setForm({
-      id: "",
-      name: "",
-      phone: "",
-      cin: "",
-      gender: "Homme",
-      dob: "",
-      joined: "",
+  const handleAdd = async () => {
+    const result = await api("create", {
+      name: form.name, phone: form.phone, email: form.email,
+      cin: form.cin, gender: form.gender, dob: form.dob,
+      joined: form.joined || new Date().toLocaleDateString("fr-FR"),
+      address: form.address, emergencyContact: form.emergencyContact,
+      emergencyPhone: form.emergencyPhone, photo: form.photo,
       status: "Actif",
-      email: "",
-      address: "",
-      emergencyContact: "",
-      emergencyPhone: "",
-      photo: "",
     });
+    if (result?.member) {
+      setMembers([result.member, ...members]);
+    }
+    setForm({ id: "", name: "", phone: "", cin: "", gender: "Homme", dob: "",
+      joined: "", status: "Actif", email: "", address: "",
+      emergencyContact: "", emergencyPhone: "", photo: "" });
     setShowAdd(false);
   };
 
-  const handleEditSave = () => {
-    setMembers(members.map(member => member.id === editForm.id ? editForm : member));
+  const handleEditSave = async () => {
+    const result = await api("update", { id: editForm.id, name: editForm.name, phone: editForm.phone, status: editForm.status });
+    if (result?.success) {
+      setMembers(members.map(m => m.id === editForm.id ? editForm : m));
+    }
     setShowEdit(false);
+  };
+
+  const handleDelete = async (id: string) => {
+    await api("delete", { id });
+    setMembers(members.filter(m => m.id !== id));
   };
 
   const openEdit = (member: Member) => {
@@ -524,7 +551,7 @@ function Members() {
                   <ActionIcons
                     onView={() => window.alert(`Profil de ${m.name} : ${m.address}, urgence ${m.emergencyContact} ${m.emergencyPhone}`)}
                     onEdit={() => openEdit(m)}
-                    onDelete={() => setMembers(members.filter(item => item.id !== m.id))}
+                    onDelete={() => handleDelete(m.id)}
                     onPrint={() => window.alert("Imprimer fiche adhérent")}
                   />
                 </td>

@@ -7,7 +7,18 @@
 import { serve } from "https://deno.land/std@0.208.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization",
+};
+
 serve(async (req: Request) => {
+  // Handle CORS preflight
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
+
   const supabase = createClient(
     Deno.env.get("SUPABASE_URL") ?? "",
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
@@ -31,9 +42,9 @@ serve(async (req: Request) => {
             ip_address: body.ipAddress || "0.0.0.0", location: body.location || "Unregistered",
             is_online: true, last_heartbeat: new Date().toISOString(),
           }).select().single();
-          return new Response(JSON.stringify({ status: "registered", terminal: t }), { headers: { "Content-Type": "application/json" } });
+          return new Response(JSON.stringify({ status: "registered", terminal: t }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
         }
-        return new Response(JSON.stringify({ status: "ok", terminal: data }), { headers: { "Content-Type": "application/json" } });
+        return new Response(JSON.stringify({ status: "ok", terminal: data }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
 
       case "get-logs": {
@@ -41,7 +52,7 @@ serve(async (req: Request) => {
         if (body.dateFilter) query = query.eq("date", body.dateFilter);
         if (body.offset) query = query.range(body.offset, body.offset + (body.limit || 50) - 1);
         const { data: logs } = await query;
-        return new Response(JSON.stringify({ logs, count: logs?.length || 0 }), { headers: { "Content-Type": "application/json" } });
+        return new Response(JSON.stringify({ logs, count: logs?.length || 0 }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
 
       case "get-stats": {
@@ -55,12 +66,12 @@ serve(async (req: Request) => {
         ]);
         return new Response(JSON.stringify({
           stats: { totalToday: total.count || 0, authorizedToday: authorized.count || 0, deniedToday: denied.count || 0, pendingPaymentsToday: pending.count || 0, activeTerminals: terminals.count || 0 }
-        }), { headers: { "Content-Type": "application/json" } });
+        }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
 
       case "get-terminals": {
         const { data: terminals } = await supabase.from("door_terminals").select("*").order("created_at", { ascending: true });
-        return new Response(JSON.stringify({ terminals }), { headers: { "Content-Type": "application/json" } });
+        return new Response(JSON.stringify({ terminals }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
 
       case "register-terminal": {
@@ -69,13 +80,13 @@ serve(async (req: Request) => {
           ip_address: body.ipAddress || "0.0.0.0", location: body.location || "New Terminal",
           is_online: false, last_heartbeat: null,
         }).select().single();
-        return new Response(JSON.stringify({ terminal: data }), { headers: { "Content-Type": "application/json" } });
+        return new Response(JSON.stringify({ terminal: data }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
 
       default:
-        return new Response(JSON.stringify({ error: "Invalid type" }), { status: 400, headers: { "Content-Type": "application/json" } });
+        return new Response(JSON.stringify({ error: "Invalid type" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
   } catch (error) {
-    return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: { "Content-Type": "application/json" } });
+    return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 });

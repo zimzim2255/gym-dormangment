@@ -2,11 +2,20 @@
 --  SenseFace 3A/3B Door Control System - Database Migration
 -- ═══════════════════════════════════════════════════════════════════════════════
 
--- ─── Members ────────────────────────────────────────────────────────────────
+-- ─── Members (full profile) ─────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS members (
   id VARCHAR(50) PRIMARY KEY,
   name VARCHAR(100) NOT NULL,
   phone VARCHAR(20),
+  email VARCHAR(100),
+  cin VARCHAR(20),
+  gender VARCHAR(10) DEFAULT 'Homme',
+  dob VARCHAR(10),          -- DD/MM/YYYY
+  joined VARCHAR(10),       -- DD/MM/YYYY
+  address TEXT,
+  emergency_contact VARCHAR(100),
+  emergency_phone VARCHAR(20),
+  photo VARCHAR(500),       -- Cloudinary URL
   status VARCHAR(20) NOT NULL DEFAULT 'Actif' CHECK (status IN ('Actif', 'Suspendu')),
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -68,15 +77,15 @@ INSERT INTO door_terminals (terminal_id, model, ip_address, port, location, is_o
   ('TERMINAL_003', 'SenseFace_3A', '192.168.1.102', 4370, 'Staff Entrance', false)
 ON CONFLICT (terminal_id) DO NOTHING;
 
-INSERT INTO members (id, name, phone, status) VALUES
-  ('ADH001', 'Karim Benali', '0661 234 567', 'Actif'),
-  ('ADH002', 'Fatima Zahra Alami', '0662 345 678', 'Actif'),
-  ('ADH003', 'Mohammed Idrissi', '0663 456 789', 'Suspendu'),
-  ('ADH004', 'Sara Benkirane', '0664 567 890', 'Actif'),
-  ('ADH005', 'Youssef Tazi', '0665 678 901', 'Actif'),
-  ('ADH006', 'Nadia Chraibi', '0666 789 012', 'Actif'),
-  ('ADH007', 'Hamid Ouazzani', '0667 890 123', 'Actif'),
-  ('ADH008', 'Laila Fassi', '0668 901 234', 'Suspendu')
+INSERT INTO members (id, name, phone, email, cin, gender, dob, joined, photo, status) VALUES
+  ('ADH001', 'Karim Benali', '0661 234 567', 'karim.benali@gmail.com', 'AB123456', 'Homme', '15/03/1992', '10/01/2024', '', 'Actif'),
+  ('ADH002', 'Fatima Zahra Alami', '0662 345 678', 'fz.alami@gmail.com', 'CD234567', 'Femme', '22/07/1998', '05/02/2024', '', 'Actif'),
+  ('ADH003', 'Mohammed Idrissi', '0663 456 789', 'm.idrissi@outlook.com', 'EF345678', 'Homme', '08/11/1985', '20/11/2023', '', 'Suspendu'),
+  ('ADH004', 'Sara Benkirane', '0664 567 890', 'sara.bk@gmail.com', 'GH456789', 'Femme', '30/05/2001', '15/03/2024', '', 'Actif'),
+  ('ADH005', 'Youssef Tazi', '0665 678 901', 'y.tazi@gmail.com', 'IJ567890', 'Homme', '12/09/1995', '28/01/2024', '', 'Actif'),
+  ('ADH006', 'Nadia Chraibi', '0666 789 012', 'nadia.c@yahoo.fr', 'KL678901', 'Femme', '03/04/1988', '10/12/2023', '', 'Actif'),
+  ('ADH007', 'Hamid Ouazzani', '0667 890 123', 'hamid.o@gmail.com', 'MN789012', 'Homme', '17/08/1993', '02/04/2024', '', 'Actif'),
+  ('ADH008', 'Laila Fassi', '0668 901 234', 'laila.f@gmail.com', 'OP890123', 'Femme', '25/12/2000', '18/02/2024', '', 'Suspendu')
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO subscriptions (id, member_id, sub_type, sub_start, sub_end, price, paid, remaining, sub_status) VALUES
