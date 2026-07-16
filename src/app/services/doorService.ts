@@ -1,18 +1,17 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 //  SenseFace 3A Door Control - Supabase Client
 //  ───────────────────────────────────────────────────────────────────────────────
-//  Minimal frontend service. The real work happens in the edge function.
-//  This only fetches logs/stats for the dashboard.
+//  Fetches real data from deployed Supabase edge functions
 // ═══════════════════════════════════════════════════════════════════════════════
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "http://localhost:54321";
-const DOOR_MGMT_URL = `${SUPABASE_URL}/functions/v1/door`;
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "https://zpxobitwvitkidcmhlyg.supabase.co";
+const FUNCTIONS_URL = `${SUPABASE_URL}/functions/v1`;
 
 // ─── Get Access Logs ────────────────────────────────────────────────────────
 
-export async function getAccessLogs(opts?: { dateFilter?: string; limit?: number }) {
+export async function getAccessLogs(opts?: { dateFilter?: string; limit?: number; offset?: number }) {
   try {
-    const res = await fetch(DOOR_MGMT_URL, {
+    const res = await fetch(`${FUNCTIONS_URL}/door-management`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -31,7 +30,7 @@ export async function getAccessLogs(opts?: { dateFilter?: string; limit?: number
 
 export async function getDoorStats() {
   try {
-    const res = await fetch(DOOR_MGMT_URL, {
+    const res = await fetch(`${FUNCTIONS_URL}/door-management`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -50,7 +49,7 @@ export async function getDoorStats() {
 
 export async function getTerminals() {
   try {
-    const res = await fetch(DOOR_MGMT_URL, {
+    const res = await fetch(`${FUNCTIONS_URL}/door-management`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

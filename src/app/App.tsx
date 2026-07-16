@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   LayoutDashboard, Users, CreditCard, Shield, Clock, Package,
   ShoppingCart, Truck, UserCheck, Receipt, BarChart2, Settings,
@@ -27,6 +27,7 @@ import StaffAddCard from "./components/erp/StaffAddCard";
 import StaffEditCard from "./components/erp/StaffEditCard";
 import ExpenseAddCard from "./components/erp/ExpenseAddCard";
 import AccessControlPanel from "./components/door/AccessControlPanel";
+import { getAccessLogs } from "./services/doorService";
 import ExpenseEditCard from "./components/erp/ExpenseEditCard";
 
 type ViewId =
@@ -709,17 +710,37 @@ function AccessControl() {
 
 function AccessHistory() {
   const [search, setSearch] = useState("");
-  const filtered = ACCESS_LOG.filter(a => a.member.toLowerCase().includes(search.toLowerCase()));
+  const [logs, setLogs] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showAll, setShowAll] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      const data = await getAccessLogs({ limit: showAll ? 200 : 50 });
+      if (data.logs) setLogs(data.logs);
+      setLoading(false);
+    })();
+  }, [showAll]);
+
+  const filtered = logs.filter((a: any) =>
+    a.member_name?.toLowerCase().includes(search.toLowerCase()) ||
+    a.method?.toLowerCase().includes(search.toLowerCase())
+  );
+
   return (
     <div className="p-6">
       <PageHeader
         title="Historique des accès"
-        count={ACCESS_LOG.length}
+        count={logs.length}
         actions={
           <>
             <SearchInput placeholder="Rechercher…" value={search} onChange={setSearch} />
-            <Btn><Download className="w-3.5 h-3.5" /> PDF</Btn>
-            <Btn><Download className="w-3.5 h-3.5" /> Excel</Btn>
+            <Btn onClick={() => setShowAll(!showAll)}>
+              {showAll ? "Récent" : "Tout"}
+            </Btn>
+            <Btn onClick={() => downloadCSV(filtered, "acces")}>
+              <Download className="w-3.5 h-3.5" /> Export
+            </Btn>
           </>
         }
       />
@@ -728,18 +749,26 @@ function AccessHistory() {
           <thead>
             <tr className="border-b border-white/5">
               <TH>Date</TH><TH>Heure</TH><TH>Adhérent</TH><TH>Téléphone</TH>
-              <TH>Abonnement</TH><TH>Statut</TH><TH>Reste</TH><TH>Appareil</TH>
+              <TH>Méthode</TH><TH>Statut</TH><TH>Reste</TH><TH>Appareil</TH>
             </tr>
           </thead>
           <tbody>
-            {filtered.map((a, i) => (
-              <TR key={i} i={i}>
+            {loading ? (
+              <tr>
+                <td colSpan={8} className="px-3 py-10 text-center text-white/20 text-sm">Chargement...</td>
+              </tr>
+            ) : filtered.length === 0 ? (
+              <tr>
+                <td colSpan={8} className="px-3 py-10 text-center text-white/20 text-sm">Aucun accès enregistré</td>
+              </tr>
+            ) : filtered.map((a: any, i: number) => (
+              <TR key={a.id || i} i={i}>
                 <TD mono dim>{a.date}</TD>
                 <td className="px-3 py-3 font-mono text-xs text-[#f04e23]">{a.time}</td>
-                <TD>{a.member}</TD>
-                <TD mono dim>{a.phone}</TD>
+                <TD>{a.member_name}</TD>
+                <TD mono dim>{a.phone || "—"}</TD>
                 <td className="px-3 py-3">
-                  <span className="px-2 py-0.5 rounded bg-[#f04e23]/10 text-[#f04e23] text-xs">{a.type}</span>
+                  <span className="text-xs text-white/40 font-mono">{a.method}</span>
                 </td>
                 <td className="px-3 py-3"><Badge s={a.status} /></td>
                 <td className="px-3 py-3 font-mono text-xs text-white/40">{a.remaining > 0 ? `${a.remaining} DH` : "—"}</td>
