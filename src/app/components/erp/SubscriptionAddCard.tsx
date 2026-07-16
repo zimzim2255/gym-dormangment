@@ -35,9 +35,9 @@ export default function SubscriptionAddCard({ form, setForm, onClose, onSave, me
             <h3 className="text-sm font-semibold text-white uppercase tracking-wider">Adhérent</h3>
           </div>
           <div className="grid grid-cols-3 gap-4">
-            <SelectField icon={User} value={form.member} onChange={v => setForm({ ...form, member: v })} options={members.map(m => ({ value: m, label: m }))} placeholder="Sélectionner adhérent" />
-            <InputField icon={Phone} value={form.phone} onChange={v => setForm({ ...form, phone: v as string })} placeholder="Téléphone" />
-            <SelectField icon={CreditCard} value={form.type} onChange={updateType} options={subTypes.map(t => ({ value: t.name, label: `${t.name} - ${t.price}DH` }))} placeholder="Type abonnement" />
+            <SelectField label="Adhérent" icon={User} value={form.member} onChange={v => setForm({ ...form, member: v })} options={members.map(m => ({ value: m, label: m }))} placeholder="Sélectionner adhérent" />
+            <InputField label="Téléphone" icon={Phone} value={form.phone} onChange={v => setForm({ ...form, phone: v as string })} placeholder="Téléphone" />
+            <SelectField label="Type d'abonnement" icon={CreditCard} value={form.type} onChange={updateType} options={subTypes.map(t => ({ value: t.name, label: `${t.name} - ${t.price}DH` }))} placeholder="Type abonnement" />
           </div>
         </div>
         <div>
@@ -46,12 +46,12 @@ export default function SubscriptionAddCard({ form, setForm, onClose, onSave, me
             <h3 className="text-sm font-semibold text-white uppercase tracking-wider">Période & Paiement</h3>
           </div>
           <div className="grid grid-cols-3 gap-4">
-            <InputField icon={Calendar} value={form.start} onChange={updateStart} placeholder="Date début (jj/mm/aaaa)" />
-            <InputField icon={Calendar} value={form.end} onChange={v => setForm({ ...form, end: v as string })} placeholder="Date fin" readOnly />
-            <InputField icon={DollarSign} type="number" value={form.price} onChange={v => setForm({ ...form, price: v as number, remaining: Math.max(0, (v as number) - form.paid) })} placeholder="Prix DH" />
-            <InputField icon={DollarSign} type="number" value={form.paid} onChange={updatePaid} placeholder="Montant payé" />
-            <InputField icon={DollarSign} value={form.remaining} onChange={() => {}} placeholder="Reste" readOnly />
-            <InputField icon={CreditCard} value={form.payment} onChange={v => setForm({ ...form, payment: v as string })} placeholder="Mode paiement" />
+            <InputField label="Date début" icon={Calendar} value={form.start} onChange={updateStart} placeholder="jj/mm/aaaa" />
+            <InputField label="Date fin" icon={Calendar} value={form.end} onChange={v => setForm({ ...form, end: v as string })} placeholder="Date fin" readOnly />
+            <InputField label="Prix (DH)" icon={DollarSign} type="number" value={form.price} onChange={v => setForm({ ...form, price: v as number, remaining: Math.max(0, (v as number) - form.paid) })} placeholder="Prix" />
+            <InputField label="Montant payé" icon={DollarSign} type="number" value={form.paid} onChange={updatePaid} placeholder="Payé" />
+            <InputField label="Reste" icon={DollarSign} value={form.remaining} onChange={() => {}} placeholder="Reste" readOnly />
+            <InputField label="Mode paiement" icon={CreditCard} value={form.payment} onChange={v => setForm({ ...form, payment: v as string })} placeholder="Espèces, Carte..." />
           </div>
         </div>
         <div>

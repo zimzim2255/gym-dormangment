@@ -10,21 +10,19 @@ export default function SupplierEditCard({ form, setForm, onClose, onSave }: Sup
   return (
     <ModalCard title="" onClose={onClose}>
       <div className="flex items-center gap-4 mb-6">
-        <div className="w-12 h-12 rounded-xl bg-[#EA5800] flex items-center justify-center">
-          <Building2 className="w-6 h-6 text-white" />
-        </div>
+        <div className="w-12 h-12 rounded-xl bg-[#EA5800] flex items-center justify-center"><Building2 className="w-6 h-6 text-white" /></div>
         <div>
           <h2 className="text-xl font-bold text-white">Modifier fournisseur</h2>
           <p className="text-sm text-[#94A3B0] mt-0.5">Modifiez les informations du fournisseur.</p>
         </div>
       </div>
       <div className="grid grid-cols-3 gap-4">
-        <InputField icon={User} value={form.name} onChange={v => setForm({ ...form, name: v as string })} placeholder="Nom" />
-        <InputField icon={Building2} value={form.company} onChange={v => setForm({ ...form, company: v as string })} placeholder="Société" />
-        <InputField icon={Phone} value={form.phone} onChange={v => setForm({ ...form, phone: v as string })} placeholder="Téléphone" />
-        <InputField icon={Mail} value={form.email} onChange={v => setForm({ ...form, email: v as string })} placeholder="Email" />
-        <InputField icon={MapPin} value={form.city} onChange={v => setForm({ ...form, city: v as string })} placeholder="Ville" />
-        <InputField icon={DollarSign} type="number" value={form.balance} onChange={v => setForm({ ...form, balance: v as number })} placeholder="Solde DH" />
+        <InputField label="Nom" icon={User} value={form.name} onChange={v => setForm({ ...form, name: v as string })} placeholder="Ex: Anas Tahiri" />
+        <InputField label="Société" icon={Building2} value={form.company} onChange={v => setForm({ ...form, company: v as string })} placeholder="Ex: FitSupply Maroc" />
+        <InputField label="Téléphone" icon={Phone} value={form.phone} onChange={v => setForm({ ...form, phone: v as string })} placeholder="Ex: 0522 111 222" />
+        <InputField label="Email" icon={Mail} value={form.email} onChange={v => setForm({ ...form, email: v as string })} placeholder="Ex: contact@fitsupply.ma" />
+        <InputField label="Ville" icon={MapPin} value={form.city} onChange={v => setForm({ ...form, city: v as string })} placeholder="Ex: Casablanca" />
+        <InputField label="Solde (DH)" icon={DollarSign} type="number" value={form.balance} onChange={v => setForm({ ...form, balance: v as number })} placeholder="0" />
       </div>
       <FormActions onCancel={onClose} onSave={onSave} saveLabel="Modifier" />
     </ModalCard>

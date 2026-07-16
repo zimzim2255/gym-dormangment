@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+
 import {
   LayoutDashboard, Users, CreditCard, Shield, Clock, Package,
   ShoppingCart, Truck, UserCheck, Receipt, BarChart2, Settings,
@@ -235,9 +236,9 @@ function SearchInput({ placeholder, value, onChange }: { placeholder: string; va
   );
 }
 
-function TH({ children }: { children: React.ReactNode }) {
+function TH({ children, className }: { children: React.ReactNode; className?: string }) {
   return (
-    <th className="px-3 py-3 text-left text-xs font-semibold text-white/30 uppercase tracking-wider whitespace-nowrap">
+    <th className={`px-3 py-3 text-left text-xs font-semibold text-white/30 uppercase tracking-wider whitespace-nowrap ${className ?? ""}`}>
       {children}
     </th>
   );
@@ -261,11 +262,11 @@ function TD({ children, mono, dim }: { children: React.ReactNode; mono?: boolean
 
 function ActionIcons({ onEdit, onDelete, onView, onPrint }: { onEdit?: () => void; onDelete?: () => void; onView?: () => void; onPrint?: () => void }) {
   return (
-    <div className="flex items-center gap-0.5">
-      {onView && <button onClick={onView} className="p-1.5 rounded hover:bg-white/10 text-white/30 hover:text-white transition-colors"><Eye className="w-3.5 h-3.5" /></button>}
-      {onEdit && <button onClick={onEdit} className="p-1.5 rounded hover:bg-white/10 text-white/30 hover:text-white transition-colors"><Pencil className="w-3.5 h-3.5" /></button>}
-      {onDelete && <button onClick={onDelete} className="p-1.5 rounded hover:bg-red-500/10 text-white/30 hover:text-red-400 transition-colors"><Trash2 className="w-3.5 h-3.5" /></button>}
-      {onPrint && <button onClick={onPrint} className="p-1.5 rounded hover:bg-white/10 text-white/30 hover:text-white transition-colors"><Printer className="w-3.5 h-3.5" /></button>}
+    <div className="flex items-center justify-end gap-3">
+      {onView && <button onClick={onView} className="hover:opacity-70 transition-opacity text-white/40 hover:text-white" title="Voir"><Eye className="w-[18px] h-[18px]" /></button>}
+      {onEdit && <button onClick={onEdit} className="hover:opacity-70 transition-opacity text-white/40 hover:text-white" title="Modifier"><Pencil className="w-[18px] h-[18px]" /></button>}
+      {onDelete && <button onClick={onDelete} className="hover:opacity-70 transition-opacity text-white/40 hover:text-red-400" title="Supprimer"><Trash2 className="w-[18px] h-[18px]" /></button>}
+      {onPrint && <button onClick={onPrint} className="hover:opacity-70 transition-opacity text-white/40 hover:text-white" title="Imprimer"><Printer className="w-[18px] h-[18px]" /></button>}
     </div>
   );
 }
@@ -493,7 +494,7 @@ function Members() {
         <table className="w-full">
           <thead>
             <tr className="border-b border-white/5">
-              <TH>ID</TH><TH>Photo</TH><TH>Nom</TH><TH>Téléphone</TH><TH>CIN</TH><TH>Sexe</TH><TH>Naissance</TH><TH>Inscription</TH><TH>Statut</TH><TH>Actions</TH>
+              <TH>ID</TH><TH>Photo</TH><TH>Téléphone</TH><TH>CIN</TH><TH>Sexe</TH><TH>Naissance</TH><TH>Inscription</TH><TH>Statut</TH><TH>Actions</TH>
             </tr>
           </thead>
           <tbody>

@@ -51,23 +51,23 @@ export default function MemberEditCard({ form, setForm, onClose, onSave }: Membe
             <h3 className="text-sm font-semibold text-white uppercase tracking-wider">Informations personnelles</h3>
           </div>
           <div className="grid grid-cols-3 gap-4">
-            <InputField icon={User} value={form.name} onChange={v => setForm({ ...form, name: v as string })} placeholder="Ex: Karim Benali" />
-            <InputField icon={Phone} value={form.phone} onChange={v => setForm({ ...form, phone: v as string })} placeholder="Ex: 0661 234 567" />
-            <InputField icon={Mail} value={form.email} onChange={v => setForm({ ...form, email: v as string })} placeholder="Ex: karim.benali@gmail.com" />
-            <InputField icon={CreditCard} value={form.cin} onChange={v => setForm({ ...form, cin: v as string })} placeholder="Ex: AB123456" />
-            <SelectField icon={User} value={form.gender} onChange={v => setForm({ ...form, gender: v })} options={[{ value: "Homme", label: "Homme" }, { value: "Femme", label: "Femme" }]} />
-            <InputField icon={Calendar} value={form.dob} onChange={v => setForm({ ...form, dob: v as string })} placeholder="jj/mm/aaaa" />
+            <InputField label="Nom complet" icon={User} value={form.name} onChange={v => setForm({ ...form, name: v as string })} placeholder="Ex: Karim Benali" />
+            <InputField label="Téléphone" icon={Phone} value={form.phone} onChange={v => setForm({ ...form, phone: v as string })} placeholder="Ex: 0661 234 567" />
+            <InputField label="Email" icon={Mail} value={form.email} onChange={v => setForm({ ...form, email: v as string })} placeholder="Ex: karim.benali@gmail.com" />
+            <InputField label="CIN" icon={CreditCard} value={form.cin} onChange={v => setForm({ ...form, cin: v as string })} placeholder="Ex: AB123456" />
+            <SelectField label="Sexe" icon={User} value={form.gender} onChange={v => setForm({ ...form, gender: v })} options={[{ value: "Homme", label: "Homme" }, { value: "Femme", label: "Femme" }]} />
+            <InputField label="Date de naissance" icon={Calendar} value={form.dob} onChange={v => setForm({ ...form, dob: v as string })} placeholder="jj/mm/aaaa" />
           </div>
           <div className="mt-4">
-            <InputField icon={MapPin} value={form.address} onChange={v => setForm({ ...form, address: v as string })} placeholder="Ex: 123, Rue Mohammed V, Fès" />
+            <InputField label="Adresse" icon={MapPin} value={form.address} onChange={v => setForm({ ...form, address: v as string })} placeholder="Ex: 123, Rue Mohammed V, Fès" />
           </div>
         </div>
 
         <div>
           <h3 className="text-sm font-semibold text-white uppercase tracking-wider mb-4">Contact urgence</h3>
           <div className="grid grid-cols-2 gap-4">
-            <InputField icon={Phone} value={form.emergencyContact} onChange={v => setForm({ ...form, emergencyContact: v as string })} placeholder="Ex: Fatima Benali" />
-            <InputField icon={Phone} value={form.emergencyPhone} onChange={v => setForm({ ...form, emergencyPhone: v as string })} placeholder="Ex: 0661 234 567" />
+            <InputField label="Contact urgence" icon={Phone} value={form.emergencyContact} onChange={v => setForm({ ...form, emergencyContact: v as string })} placeholder="Ex: Fatima Benali" />
+            <InputField label="Téléphone urgence" icon={Phone} value={form.emergencyPhone} onChange={v => setForm({ ...form, emergencyPhone: v as string })} placeholder="Ex: 0661 234 567" />
           </div>
         </div>
 
