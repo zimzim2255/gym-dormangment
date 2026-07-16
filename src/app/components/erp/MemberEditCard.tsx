@@ -1,29 +1,18 @@
-import { Pencil, Upload, X } from "lucide-react";
+import { Pencil, User, Phone, Mail, CreditCard, Calendar, MapPin, Upload, UserRound, Image } from "lucide-react";
 import { Dispatch, SetStateAction, useState } from "react";
 import ModalCard from "../ui/ModalCard";
+import { InputField, SelectField, FormActions } from "../ui/FormField";
 import { uploadMemberPhoto } from "../../services/cloudinaryService";
 
 type MemberForm = {
-  id: string;
-  name: string;
-  phone: string;
-  cin: string;
-  gender: string;
-  dob: string;
-  joined: string;
-  status: string;
-  email: string;
-  address: string;
-  emergencyContact: string;
-  emergencyPhone: string;
-  photo: string;
+  id: string; name: string; phone: string; cin: string; gender: string;
+  dob: string; joined: string; status: string; email: string; address: string;
+  emergencyContact: string; emergencyPhone: string; photo: string;
 };
 
 interface MemberEditCardProps {
-  form: MemberForm;
-  setForm: Dispatch<SetStateAction<MemberForm>>;
-  onClose: () => void;
-  onSave: () => void;
+  form: MemberForm; setForm: Dispatch<SetStateAction<MemberForm>>;
+  onClose: () => void; onSave: () => void;
 }
 
 export default function MemberEditCard({ form, setForm, onClose, onSave }: MemberEditCardProps) {
@@ -33,77 +22,96 @@ export default function MemberEditCard({ form, setForm, onClose, onSave }: Membe
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
     const localUrl = URL.createObjectURL(file);
     setPreview(localUrl);
-
     setUploading(true);
     try {
       const url = await uploadMemberPhoto(file, form.id || undefined);
       setForm({ ...form, photo: url });
-    } catch (err) {
-      console.error("Upload failed:", err);
-      setPreview(null);
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  const clearPhoto = () => {
-    setForm({ ...form, photo: "" });
-    setPreview(null);
+    } catch { setPreview(null); }
+    finally { setUploading(false); }
   };
 
   return (
-    <ModalCard title="Modifier adhérent" onClose={onClose}>
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
-        <input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="Nom complet" className="p-2 bg-white/5 border border-white/10 rounded text-sm text-white" />
-        <input value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} placeholder="Téléphone" className="p-2 bg-white/5 border border-white/10 rounded text-sm text-white" />
-        <input value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} placeholder="Email" className="p-2 bg-white/5 border border-white/10 rounded text-sm text-white" />
-        <input value={form.cin} onChange={e => setForm({ ...form, cin: e.target.value })} placeholder="CIN" className="p-2 bg-white/5 border border-white/10 rounded text-sm text-white" />
-        <select value={form.gender} onChange={e => setForm({ ...form, gender: e.target.value })} className="p-2 bg-white/5 border border-white/10 rounded text-sm text-white">
-          <option>Homme</option>
-          <option>Femme</option>
-        </select>
-        <input value={form.dob} onChange={e => setForm({ ...form, dob: e.target.value })} placeholder="Date de naissance" className="p-2 bg-white/5 border border-white/10 rounded text-sm text-white" />
-        <input value={form.address} onChange={e => setForm({ ...form, address: e.target.value })} placeholder="Adresse" className="p-2 bg-white/5 border border-white/10 rounded text-sm text-white" />
-        <input value={form.emergencyContact} onChange={e => setForm({ ...form, emergencyContact: e.target.value })} placeholder="Contact urgence" className="p-2 bg-white/5 border border-white/10 rounded text-sm text-white" />
-        <input value={form.emergencyPhone} onChange={e => setForm({ ...form, emergencyPhone: e.target.value })} placeholder="Téléphone urgence" className="p-2 bg-white/5 border border-white/10 rounded text-sm text-white" />
-      </div>
-
-      {/* Photo Upload */}
-      <div className="mt-4">
-        <label className="text-xs text-white/30 block mb-2">Photo (optionnelle)</label>
-        <div className="flex items-center gap-3">
-          {(preview || form.photo) ? (
-            <div className="relative w-16 h-16 rounded-full overflow-hidden border border-white/10">
-              <img src={preview || form.photo} alt="Photo" className="w-full h-full object-cover" />
-              <button onClick={clearPhoto} className="absolute top-0 right-0 p-0.5 bg-red-500/80 rounded-full">
-                <X className="w-3 h-3 text-white" />
-              </button>
-            </div>
-          ) : (
-            <div className="w-16 h-16 rounded-full bg-white/5 border border-dashed border-white/10 flex items-center justify-center">
-              {uploading ? (
-                <div className="w-5 h-5 border-2 border-[#f04e23] border-t-transparent rounded-full animate-spin" />
-              ) : (
-                <Upload className="w-5 h-5 text-white/30" />
-              )}
-            </div>
-          )}
-          <label className="cursor-pointer px-3 py-1.5 rounded bg-white/5 hover:bg-white/10 border border-white/10 text-sm text-white/60 hover:text-white transition-colors">
-            {uploading ? "Upload en cours..." : "Changer la photo"}
-            <input type="file" accept="image/*" onChange={handlePhotoUpload} className="hidden" disabled={uploading} />
-          </label>
+    <ModalCard title="" onClose={onClose}>
+      <div className="flex items-center gap-4 mb-6">
+        <div className="w-12 h-12 rounded-xl bg-[#EA5800] flex items-center justify-center flex-shrink-0">
+          <Pencil className="w-6 h-6 text-white" />
+        </div>
+        <div>
+          <h2 className="text-xl font-bold text-white">Modifier adhérent</h2>
+          <p className="text-sm text-[#94A3B0] mt-0.5">Modifiez les informations de l'adhérent.</p>
         </div>
       </div>
 
-      <div className="mt-4 flex justify-end gap-2">
-        <button onClick={onClose} className="px-3 py-1.5 rounded text-sm text-white bg-white/5 hover:bg-white/10 transition">Annuler</button>
-        <button onClick={onSave} disabled={uploading} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded text-sm font-medium bg-[#f04e23] hover:bg-[#d94118] disabled:opacity-50 text-white transition-all">
-          <Pencil className="w-3.5 h-3.5" /> Enregistrer
-        </button>
+      <div className="space-y-6">
+        <div>
+          <div className="flex items-center gap-2 mb-4">
+            <User className="w-4 h-4 text-[#EA5800]" />
+            <h3 className="text-sm font-semibold text-white uppercase tracking-wider">Informations personnelles</h3>
+          </div>
+          <div className="grid grid-cols-3 gap-4">
+            <InputField icon={User} value={form.name} onChange={v => setForm({ ...form, name: v as string })} placeholder="Ex: Karim Benali" />
+            <InputField icon={Phone} value={form.phone} onChange={v => setForm({ ...form, phone: v as string })} placeholder="Ex: 0661 234 567" />
+            <InputField icon={Mail} value={form.email} onChange={v => setForm({ ...form, email: v as string })} placeholder="Ex: karim.benali@gmail.com" />
+            <InputField icon={CreditCard} value={form.cin} onChange={v => setForm({ ...form, cin: v as string })} placeholder="Ex: AB123456" />
+            <SelectField icon={User} value={form.gender} onChange={v => setForm({ ...form, gender: v })} options={[{ value: "Homme", label: "Homme" }, { value: "Femme", label: "Femme" }]} />
+            <InputField icon={Calendar} value={form.dob} onChange={v => setForm({ ...form, dob: v as string })} placeholder="jj/mm/aaaa" />
+          </div>
+          <div className="mt-4">
+            <InputField icon={MapPin} value={form.address} onChange={v => setForm({ ...form, address: v as string })} placeholder="Ex: 123, Rue Mohammed V, Fès" />
+          </div>
+        </div>
+
+        <div>
+          <h3 className="text-sm font-semibold text-white uppercase tracking-wider mb-4">Contact urgence</h3>
+          <div className="grid grid-cols-2 gap-4">
+            <InputField icon={Phone} value={form.emergencyContact} onChange={v => setForm({ ...form, emergencyContact: v as string })} placeholder="Ex: Fatima Benali" />
+            <InputField icon={Phone} value={form.emergencyPhone} onChange={v => setForm({ ...form, emergencyPhone: v as string })} placeholder="Ex: 0661 234 567" />
+          </div>
+        </div>
+
+        <div>
+          <div className="flex items-center gap-2 mb-4">
+            <Image className="w-4 h-4 text-[#EA5800]" />
+            <h3 className="text-sm font-semibold text-white uppercase tracking-wider">Photo de profil (optionnelle)</h3>
+          </div>
+          <div className="grid grid-cols-2 gap-6">
+            <label className="cursor-pointer flex flex-col items-center justify-center border-2 border-dashed border-[#475569] rounded-xl p-8 hover:border-[#EA5800]/50 transition-colors min-h-[180px]">
+              {uploading ? (
+                <div className="flex flex-col items-center gap-2">
+                  <div className="w-8 h-8 border-2 border-[#EA5800] border-t-transparent rounded-full animate-spin" />
+                  <span className="text-sm text-[#94A3B0]">Upload en cours...</span>
+                </div>
+              ) : preview || form.photo ? (
+                <img src={preview || form.photo} alt="Preview" className="w-24 h-24 rounded-full object-cover" />
+              ) : (
+                <>
+                  <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center mb-3">
+                    <Upload className="w-5 h-5 text-[#94A3B0]" />
+                  </div>
+                  <span className="text-sm font-semibold text-white mb-1">Cliquez pour choisir une photo</span>
+                  <span className="text-xs text-[#94A3B0]">PNG, JPG ou WEBP</span>
+                  <span className="text-xs text-[#94A3B0]">Max 5MB</span>
+                </>
+              )}
+              <input type="file" accept="image/*" onChange={handlePhotoUpload} className="hidden" disabled={uploading} />
+            </label>
+            <div>
+              <span className="text-xs text-[#94A3B0] block mb-3">Aperçu</span>
+              <div className="w-[120px] h-[120px] rounded-full bg-[#475569] flex items-center justify-center mx-auto">
+                {preview || form.photo ? (
+                  <img src={preview || form.photo} alt="Preview" className="w-full h-full rounded-full object-cover" />
+                ) : (
+                  <UserRound className="w-12 h-12 text-white/30" />
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
+
+      <FormActions onCancel={onClose} onSave={onSave} saving={uploading} saveLabel="Modifier" />
     </ModalCard>
   );
 }

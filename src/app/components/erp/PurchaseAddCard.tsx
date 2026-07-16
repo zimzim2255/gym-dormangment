@@ -1,63 +1,39 @@
-import { Plus } from "lucide-react";
+import { ShoppingCart, Truck, Package, DollarSign, CreditCard, Calendar } from "lucide-react";
 import { Dispatch, SetStateAction } from "react";
 import ModalCard from "../ui/ModalCard";
+import { InputField, SelectField, FormActions } from "../ui/FormField";
 
-type PurchaseForm = {
-  id: string;
-  supplier: string;
-  product: string;
-  quantity: number;
-  price: number;
-  total: number;
-  date: string;
-  payment: string;
-};
-
-interface SupplierOption {
-  name: string;
-  company: string;
-}
-
-interface ProductOption {
-  code: string;
-  name: string;
-}
-
+type PurchaseForm = { id: string; supplier: string; product: string; quantity: number; price: number; total: number; date: string; payment: string; };
+interface SupplierOption { name: string; company: string; }
+interface ProductOption { code: string; name: string; }
 interface PurchaseAddCardProps {
-  form: PurchaseForm;
-  setForm: Dispatch<SetStateAction<PurchaseForm>>;
-  onClose: () => void;
-  onSave: () => void;
-  suppliers: SupplierOption[];
-  products: ProductOption[];
-  onQuantityChange: (value: number) => void;
-  onPriceChange: (value: number) => void;
+  form: PurchaseForm; setForm: Dispatch<SetStateAction<PurchaseForm>>;
+  onClose: () => void; onSave: () => void; suppliers: SupplierOption[]; products: ProductOption[];
+  onQuantityChange: (value: number) => void; onPriceChange: (value: number) => void;
 }
 
 export default function PurchaseAddCard({ form, setForm, onClose, onSave, suppliers, products, onQuantityChange, onPriceChange }: PurchaseAddCardProps) {
   return (
-    <ModalCard title="Ajouter achat" onClose={onClose}>
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
-        <select value={form.supplier} onChange={e => setForm({ ...form, supplier: e.target.value })} className="p-2 bg-white/5 border border-white/10 rounded text-sm text-white">
-          <option value="">Fournisseur</option>
-          {suppliers.map(s => <option key={s.company} value={s.company}>{s.company}</option>)}
-        </select>
-        <select value={form.product} onChange={e => setForm({ ...form, product: e.target.value })} className="p-2 bg-white/5 border border-white/10 rounded text-sm text-white">
-          <option value="">Produit</option>
-          {products.map(p => <option key={p.code} value={p.name}>{p.name}</option>)}
-        </select>
-        <input type="number" value={form.quantity} min={1} onChange={e => onQuantityChange(Number(e.target.value))} placeholder="Quantité" className="p-2 bg-white/5 border border-white/10 rounded text-sm text-white" />
-        <input type="number" value={form.price} min={0} onChange={e => onPriceChange(Number(e.target.value))} placeholder="Prix unitaire" className="p-2 bg-white/5 border border-white/10 rounded text-sm text-white" />
-        <input value={form.total} readOnly placeholder="Total" className="p-2 bg-white/10 border border-white/10 rounded text-sm text-white/50" />
-        <input value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} placeholder="Date" className="p-2 bg-white/5 border border-white/10 rounded text-sm text-white" />
-        <input value={form.payment} onChange={e => setForm({ ...form, payment: e.target.value })} placeholder="Paiement" className="p-2 bg-white/5 border border-white/10 rounded text-sm text-white" />
+    <ModalCard title="" onClose={onClose}>
+      <div className="flex items-center gap-4 mb-6">
+        <div className="w-12 h-12 rounded-xl bg-[#EA5800] flex items-center justify-center">
+          <ShoppingCart className="w-6 h-6 text-white" />
+        </div>
+        <div>
+          <h2 className="text-xl font-bold text-white">Ajouter achat</h2>
+          <p className="text-sm text-[#94A3B0] mt-0.5">Enregistrez un nouvel achat.</p>
+        </div>
       </div>
-      <div className="mt-4 flex justify-end gap-2">
-        <button onClick={onClose} className="px-3 py-1.5 rounded text-sm text-white bg-white/5 hover:bg-white/10 transition">Annuler</button>
-        <button onClick={onSave} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded text-sm font-medium bg-[#f04e23] hover:bg-[#d94118] text-white transition-all">
-          <Plus className="w-3.5 h-3.5" /> Enregistrer
-        </button>
+      <div className="grid grid-cols-3 gap-4">
+        <SelectField icon={Truck} value={form.supplier} onChange={v => setForm({ ...form, supplier: v })} options={suppliers.map(s => ({ value: s.company, label: s.company }))} placeholder="Fournisseur" />
+        <SelectField icon={Package} value={form.product} onChange={v => setForm({ ...form, product: v })} options={products.map(p => ({ value: p.name, label: p.name }))} placeholder="Produit" />
+        <InputField icon={Package} type="number" value={form.quantity} onChange={onQuantityChange} placeholder="Quantité" min={1} />
+        <InputField icon={DollarSign} type="number" value={form.price} onChange={onPriceChange} placeholder="Prix unitaire" min={0} />
+        <InputField icon={DollarSign} value={form.total} onChange={() => {}} placeholder="Total" readOnly />
+        <InputField icon={CreditCard} value={form.payment} onChange={v => setForm({ ...form, payment: v as string })} placeholder="Paiement" />
+        <InputField icon={Calendar} value={form.date} onChange={v => setForm({ ...form, date: v as string })} placeholder="Date" />
       </div>
+      <FormActions onCancel={onClose} onSave={onSave} />
     </ModalCard>
   );
 }

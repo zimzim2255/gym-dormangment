@@ -1,40 +1,32 @@
-import { Pencil } from "lucide-react";
+import { Receipt, FileText, DollarSign, Calendar, User, MessageSquare } from "lucide-react";
 import { Dispatch, SetStateAction } from "react";
 import ModalCard from "../ui/ModalCard";
+import { InputField, FormActions } from "../ui/FormField";
 
-type ExpenseForm = {
-  cat: string;
-  desc: string;
-  amount: number;
-  date: string;
-  resp: string;
-  note: string;
-};
-
-interface ExpenseEditCardProps {
-  form: ExpenseForm;
-  setForm: Dispatch<SetStateAction<ExpenseForm>>;
-  onClose: () => void;
-  onSave: () => void;
-}
+type ExpenseForm = { cat: string; desc: string; amount: number; date: string; resp: string; note: string; };
+interface ExpenseEditCardProps { form: ExpenseForm; setForm: Dispatch<SetStateAction<ExpenseForm>>; onClose: () => void; onSave: () => void; }
 
 export default function ExpenseEditCard({ form, setForm, onClose, onSave }: ExpenseEditCardProps) {
   return (
-    <ModalCard title="Modifier dépense" onClose={onClose}>
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
-        <input value={form.cat} onChange={e => setForm({ ...form, cat: e.target.value })} placeholder="Catégorie" className="p-2 bg-white/5 border border-white/10 rounded text-sm text-white" />
-        <input value={form.desc} onChange={e => setForm({ ...form, desc: e.target.value })} placeholder="Désignation" className="p-2 bg-white/5 border border-white/10 rounded text-sm text-white" />
-        <input type="number" value={form.amount} min={0} onChange={e => setForm({ ...form, amount: Number(e.target.value) })} placeholder="Montant DH" className="p-2 bg-white/5 border border-white/10 rounded text-sm text-white" />
-        <input value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} placeholder="Date" className="p-2 bg-white/5 border border-white/10 rounded text-sm text-white" />
-        <input value={form.resp} onChange={e => setForm({ ...form, resp: e.target.value })} placeholder="Responsable" className="p-2 bg-white/5 border border-white/10 rounded text-sm text-white" />
-        <input value={form.note} onChange={e => setForm({ ...form, note: e.target.value })} placeholder="Observation" className="p-2 bg-white/5 border border-white/10 rounded text-sm text-white" />
+    <ModalCard title="" onClose={onClose}>
+      <div className="flex items-center gap-4 mb-6">
+        <div className="w-12 h-12 rounded-xl bg-[#EA5800] flex items-center justify-center">
+          <Receipt className="w-6 h-6 text-white" />
+        </div>
+        <div>
+          <h2 className="text-xl font-bold text-white">Modifier dépense</h2>
+          <p className="text-sm text-[#94A3B0] mt-0.5">Modifiez les informations de la dépense.</p>
+        </div>
       </div>
-      <div className="mt-4 flex justify-end gap-2">
-        <button onClick={onClose} className="px-3 py-1.5 rounded text-sm text-white bg-white/5 hover:bg-white/10 transition">Annuler</button>
-        <button onClick={onSave} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded text-sm font-medium bg-[#f04e23] hover:bg-[#d94118] text-white transition-all">
-          <Pencil className="w-3.5 h-3.5" /> Enregistrer
-        </button>
+      <div className="grid grid-cols-3 gap-4">
+        <InputField icon={FileText} value={form.cat} onChange={v => setForm({ ...form, cat: v as string })} placeholder="Catégorie" />
+        <InputField icon={MessageSquare} value={form.desc} onChange={v => setForm({ ...form, desc: v as string })} placeholder="Désignation" />
+        <InputField icon={DollarSign} type="number" value={form.amount} onChange={v => setForm({ ...form, amount: v as number })} placeholder="Montant DH" />
+        <InputField icon={Calendar} value={form.date} onChange={v => setForm({ ...form, date: v as string })} placeholder="Date" />
+        <InputField icon={User} value={form.resp} onChange={v => setForm({ ...form, resp: v as string })} placeholder="Responsable" />
+        <InputField icon={MessageSquare} value={form.note} onChange={v => setForm({ ...form, note: v as string })} placeholder="Observation" />
       </div>
+      <FormActions onCancel={onClose} onSave={onSave} saveLabel="Modifier" />
     </ModalCard>
   );
 }

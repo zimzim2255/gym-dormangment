@@ -1,45 +1,33 @@
-import { Pencil } from "lucide-react";
+import { User, Phone, CreditCard, Briefcase, DollarSign, Calendar, Clock } from "lucide-react";
 import { Dispatch, SetStateAction } from "react";
 import ModalCard from "../ui/ModalCard";
+import { InputField, SelectField, FormActions } from "../ui/FormField";
 
-type StaffForm = {
-  name: string;
-  phone: string;
-  cin: string;
-  role: string;
-  salary: number;
-  hired: string;
-  status: string;
-};
-
-interface StaffEditCardProps {
-  form: StaffForm;
-  setForm: Dispatch<SetStateAction<StaffForm>>;
-  onClose: () => void;
-  onSave: () => void;
-}
+type StaffForm = { name: string; phone: string; cin: string; role: string; salary: number; hired: string; status: string; };
+interface StaffEditCardProps { form: StaffForm; setForm: Dispatch<SetStateAction<StaffForm>>; onClose: () => void; onSave: () => void; }
 
 export default function StaffEditCard({ form, setForm, onClose, onSave }: StaffEditCardProps) {
   return (
-    <ModalCard title="Modifier employé" onClose={onClose}>
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
-        <input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="Nom" className="p-2 bg-white/5 border border-white/10 rounded text-sm text-white" />
-        <input value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} placeholder="Téléphone" className="p-2 bg-white/5 border border-white/10 rounded text-sm text-white" />
-        <input value={form.cin} onChange={e => setForm({ ...form, cin: e.target.value })} placeholder="CIN" className="p-2 bg-white/5 border border-white/10 rounded text-sm text-white" />
-        <input value={form.role} onChange={e => setForm({ ...form, role: e.target.value })} placeholder="Poste" className="p-2 bg-white/5 border border-white/10 rounded text-sm text-white" />
-        <input type="number" value={form.salary} min={0} onChange={e => setForm({ ...form, salary: Number(e.target.value) })} placeholder="Salaire DH" className="p-2 bg-white/5 border border-white/10 rounded text-sm text-white" />
-        <input value={form.hired} onChange={e => setForm({ ...form, hired: e.target.value })} placeholder="Embauché le" className="p-2 bg-white/5 border border-white/10 rounded text-sm text-white" />
-        <select value={form.status} onChange={e => setForm({ ...form, status: e.target.value })} className="p-2 bg-white/5 border border-white/10 rounded text-sm text-white">
-          <option>Présent</option>
-          <option>Absent</option>
-        </select>
+    <ModalCard title="" onClose={onClose}>
+      <div className="flex items-center gap-4 mb-6">
+        <div className="w-12 h-12 rounded-xl bg-[#EA5800] flex items-center justify-center">
+          <User className="w-6 h-6 text-white" />
+        </div>
+        <div>
+          <h2 className="text-xl font-bold text-white">Modifier employé</h2>
+          <p className="text-sm text-[#94A3B0] mt-0.5">Modifiez les informations de l'employé.</p>
+        </div>
       </div>
-      <div className="mt-4 flex justify-end gap-2">
-        <button onClick={onClose} className="px-3 py-1.5 rounded text-sm text-white bg-white/5 hover:bg-white/10 transition">Annuler</button>
-        <button onClick={onSave} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded text-sm font-medium bg-[#f04e23] hover:bg-[#d94118] text-white transition-all">
-          <Pencil className="w-3.5 h-3.5" /> Enregistrer
-        </button>
+      <div className="grid grid-cols-3 gap-4">
+        <InputField icon={User} value={form.name} onChange={v => setForm({ ...form, name: v as string })} placeholder="Nom complet" />
+        <InputField icon={Phone} value={form.phone} onChange={v => setForm({ ...form, phone: v as string })} placeholder="Téléphone" />
+        <InputField icon={CreditCard} value={form.cin} onChange={v => setForm({ ...form, cin: v as string })} placeholder="CIN" />
+        <InputField icon={Briefcase} value={form.role} onChange={v => setForm({ ...form, role: v as string })} placeholder="Poste" />
+        <InputField icon={DollarSign} type="number" value={form.salary} onChange={v => setForm({ ...form, salary: v as number })} placeholder="Salaire DH" />
+        <InputField icon={Calendar} value={form.hired} onChange={v => setForm({ ...form, hired: v as string })} placeholder="Embauché le" />
+        <SelectField icon={Clock} value={form.status} onChange={v => setForm({ ...form, status: v })} options={[{ value: "Présent", label: "Présent" }, { value: "Absent", label: "Absent" }]} />
       </div>
+      <FormActions onCancel={onClose} onSave={onSave} saveLabel="Modifier" />
     </ModalCard>
   );
 }
