@@ -17,17 +17,17 @@ CREATE INDEX IF NOT EXISTS idx_members_status ON members(status);
 CREATE TABLE IF NOT EXISTS subscriptions (
   id VARCHAR(50) PRIMARY KEY,
   member_id VARCHAR(50) NOT NULL REFERENCES members(id),
-  sub_type VARCHAR(50) NOT NULL,
-  sub_start VARCHAR(10) NOT NULL,  -- DD/MM/YYYY
-  sub_end VARCHAR(10) NOT NULL,    -- DD/MM/YYYY
+  type VARCHAR(50) NOT NULL,
+  start VARCHAR(10) NOT NULL,  -- DD/MM/YYYY
+  end VARCHAR(10) NOT NULL,    -- DD/MM/YYYY
   price DECIMAL(10,2) NOT NULL DEFAULT 0,
   paid DECIMAL(10,2) NOT NULL DEFAULT 0,
   remaining DECIMAL(10,2) NOT NULL DEFAULT 0,
-  sub_status VARCHAR(20) NOT NULL DEFAULT 'Non payé' CHECK (sub_status IN ('Payé', 'Paiement partiel', 'Non payé')),
+  status VARCHAR(20) NOT NULL DEFAULT 'Non payé' CHECK (status IN ('Payé', 'Paiement partiel', 'Non payé')),
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 CREATE INDEX IF NOT EXISTS idx_subscriptions_member ON subscriptions(member_id);
-CREATE INDEX IF NOT EXISTS idx_subscriptions_end ON subscriptions(sub_end);
+CREATE INDEX IF NOT EXISTS idx_subscriptions_end ON subscriptions(end);
 
 -- ─── Terminals ──────────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS door_terminals (
@@ -79,7 +79,7 @@ INSERT INTO members (id, name, phone, status) VALUES
   ('ADH008', 'Laila Fassi', '0668 901 234', 'Suspendu')
 ON CONFLICT (id) DO NOTHING;
 
-INSERT INTO subscriptions (id, member_id, sub_type, sub_start, sub_end, price, paid, remaining, sub_status) VALUES
+INSERT INTO subscriptions (id, member_id, type, start, end, price, paid, remaining, status) VALUES
   ('AB001', 'ADH001', 'Mensuel', '01/07/2025', '31/07/2025', 200, 200, 0, 'Payé'),
   ('AB002', 'ADH002', 'Trimestriel', '01/06/2025', '31/08/2025', 500, 300, 200, 'Paiement partiel'),
   ('AB003', 'ADH004', 'Annuel', '15/01/2025', '15/01/2026', 1600, 1600, 0, 'Payé'),
