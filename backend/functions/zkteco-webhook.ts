@@ -93,8 +93,8 @@ serve(async (req: Request) => {
     const { data: subscription } = await supabase
       .from("subscriptions")
       .select("*")
-      .eq("memberId", body.userId)
-      .order("end", { ascending: false })
+      .eq("member_id", body.userId)
+      .order("sub_end", { ascending: false })
       .limit(1)
       .single();
 
@@ -114,8 +114,8 @@ serve(async (req: Request) => {
       return new Date(year, month - 1, day);
     };
 
-    const startDate = parseFrDate(subscription.start);
-    const endDate = parseFrDate(subscription.end);
+    const startDate = parseFrDate(subscription.sub_start);
+    const endDate = parseFrDate(subscription.sub_end);
 
     if (!startDate || !endDate) {
       const msg = "Erreur de configuration d'abonnement";
@@ -139,7 +139,7 @@ serve(async (req: Request) => {
     }
 
     // ─── Step 4: Check payment status ────────────────────────────────
-    if (subscription.status === "Non payé") {
+    if (subscription.sub_status === "Non payé") {
       const msg = "Abonnement non payé";
       await logDenied(supabase, sessionId, body, method, msg);
       return respond(sessionId, "DENIED", msg, startTime);
@@ -150,7 +150,7 @@ serve(async (req: Request) => {
     let message = "Accès autorisé. Bon sport !";
     let status: "Autorisé" | "Paiement restant" = "Autorisé";
 
-    if (subscription.status === "Paiement partiel") {
+    if (subscription.sub_status === "Paiement partiel") {
       decision = "PENDING_PAYMENT";
       message = `Accès autorisé. Paiement restant: ${subscription.remaining} DH`;
       status = "Paiement restant";
@@ -177,7 +177,7 @@ serve(async (req: Request) => {
       member_id: member.id,
       member_name: member.name,
       phone: member.phone || "",
-      subscription_type: subscription.type,
+      subscription_type: subscription.sub_type,
       date: now.toLocaleDateString("fr-FR"),
       time: now.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }),
       status,

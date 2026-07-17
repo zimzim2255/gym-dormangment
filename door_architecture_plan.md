@@ -228,3 +228,18 @@ You need to:
 1. Run the SQL migration to create `members`, `subscriptions`, `door_terminals`, `access_logs` tables
 2. Enroll your members' faces/fingerprints/RFID cards in the SenseFace 3A terminal
 3. Configure the PUSH server URL on the terminal to point to our edge function
+
+1. Admin registers user on SenseFace 3A terminal
+   → Terminal creates user with ID: "ADH001"
+   → Scans face/fingerprint/RFID → stored locally on terminal
+
+2. Admin opens web app → "Ajouter un adhérent"
+   → First field: "ID sur le terminal" → enters "ADH001"
+   → Fills rest of the form → saves to Supabase
+
+3. User scans at the door
+   → Terminal matches biometric locally
+   → Sends to webhook: { userId: "ADH001", verifyMode: 2 }
+   → Webhook looks up "ADH001" in Supabase `members` table
+   → Checks subscription → returns GRANTED/DENIED
+

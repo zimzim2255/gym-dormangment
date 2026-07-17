@@ -461,7 +461,7 @@ function Members() {
 
   const handleAdd = async () => {
     const result = await api("create", {
-      name: form.name, phone: form.phone, email: form.email,
+      id: form.id, name: form.name, phone: form.phone, email: form.email,
       cin: form.cin, gender: form.gender, dob: form.dob,
       joined: form.joined || new Date().toLocaleDateString("fr-FR"),
       address: form.address, emergencyContact: form.emergencyContact,
@@ -469,7 +469,16 @@ function Members() {
       status: "Actif",
     });
     if (result?.member) {
-      setMembers([result.member, ...members]);
+      const m = result.member;
+      setMembers([{
+        id: m.id, name: m.name, phone: m.phone || "",
+        cin: m.cin || "", gender: m.gender || "Homme",
+        dob: m.dob || "", joined: m.joined || "", status: m.status,
+        email: m.email || "", address: m.address || "",
+        emergencyContact: m.emergency_contact || "",
+        emergencyPhone: m.emergency_phone || "",
+        photo: m.photo || "",
+      }, ...members]);
     }
     setForm({ id: "", name: "", phone: "", cin: "", gender: "Homme", dob: "",
       joined: "", status: "Actif", email: "", address: "",
@@ -478,7 +487,14 @@ function Members() {
   };
 
   const handleEditSave = async () => {
-    const result = await api("update", { id: editForm.id, name: editForm.name, phone: editForm.phone, status: editForm.status });
+    const result = await api("update", {
+      id: editForm.id, name: editForm.name, phone: editForm.phone,
+      email: editForm.email, cin: editForm.cin, gender: editForm.gender,
+      dob: editForm.dob, joined: editForm.joined, address: editForm.address,
+      emergencyContact: editForm.emergencyContact,
+      emergencyPhone: editForm.emergencyPhone, photo: editForm.photo,
+      status: editForm.status,
+    });
     if (result?.success) {
       setMembers(members.map(m => m.id === editForm.id ? editForm : m));
     }

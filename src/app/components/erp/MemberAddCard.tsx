@@ -54,6 +54,7 @@ export default function MemberAddCard({ form, setForm, onClose, onSave }: Member
             <h3 className="text-sm font-semibold text-white uppercase tracking-wider">Informations personnelles</h3>
           </div>
           <div className="grid grid-cols-3 gap-4">
+            <InputField label="ID sur le terminal" icon={CreditCard} value={form.id} onChange={v => setForm({ ...form, id: v as string })} placeholder="Ex: ADH001 (du terminal)" required />
             <InputField label="Nom complet" icon={User} value={form.name} onChange={v => setForm({ ...form, name: v as string })} placeholder="Ex: Karim Benali" required />
             <InputField label="Téléphone" icon={Phone} value={form.phone} onChange={v => setForm({ ...form, phone: v as string })} placeholder="Ex: 0661 234 567" required />
             <InputField label="Email" icon={Mail} value={form.email} onChange={v => setForm({ ...form, email: v as string })} placeholder="Ex: karim.benali@gmail.com" />
