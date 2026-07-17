@@ -602,13 +602,13 @@ function Subscriptions() {
   const [editForm, setEditForm] = useState(form);
 
   // Load subscriptions from Supabase on mount
-  const [memberNames, setMemberNames] = useState<{ id: string; name: string }[]>([]);
+  const [memberNames, setMemberNames] = useState<{ id: string; name: string; phone: string }[]>([]);
 
   useEffect(() => {
     (async () => {
       const [subData, memberData] = await Promise.all([subApi("list"), api("list")]);
       if (subData?.subscriptions) setSubscriptions(subData.subscriptions);
-      if (memberData?.members) setMemberNames(memberData.members.map((m: any) => ({ id: m.id, name: m.name })));
+      if (memberData?.members) setMemberNames(memberData.members.map((m: any) => ({ id: m.id, name: m.name, phone: m.phone || "" })));
     })();
   }, []);
 
@@ -710,6 +710,10 @@ function Subscriptions() {
           updateType={type => updateSubscriptionType(type, form, setForm)}
           updateStart={start => updateSubscriptionStart(start, form, setForm)}
           updatePaid={paid => updateSubscriptionPaid(paid, form, setForm)}
+          onMemberChange={(name: string) => {
+            const m = memberNames.find(x => x.name === name);
+            setForm({ ...form, member: name, phone: m?.phone || "" });
+          }}
         />
       )}
       {showEdit && (

@@ -14,9 +14,10 @@ interface SubscriptionAddCardProps {
   form: SubscriptionForm; setForm: Dispatch<SetStateAction<SubscriptionForm>>;
   onClose: () => void; onSave: () => void; members: string[]; subTypes: SubType[];
   updateType: (type: string) => void; updateStart: (value: string) => void; updatePaid: (value: number) => void;
+  onMemberChange?: (name: string) => void;
 }
 
-export default function SubscriptionAddCard({ form, setForm, onClose, onSave, members, subTypes, updateType, updateStart, updatePaid }: SubscriptionAddCardProps) {
+export default function SubscriptionAddCard({ form, setForm, onClose, onSave, members, subTypes, updateType, updateStart, updatePaid, onMemberChange }: SubscriptionAddCardProps) {
   return (
     <ModalCard title="" onClose={onClose}>
       <div className="flex items-center gap-4 mb-6">
@@ -35,7 +36,7 @@ export default function SubscriptionAddCard({ form, setForm, onClose, onSave, me
             <h3 className="text-sm font-semibold text-white uppercase tracking-wider">Adhérent</h3>
           </div>
           <div className="grid grid-cols-3 gap-4">
-            <SelectField label="Adhérent" icon={User} value={form.member} onChange={v => setForm({ ...form, member: v })} options={members.map(m => ({ value: m, label: m }))} placeholder="Sélectionner adhérent" />
+            <SelectField label="Adhérent" icon={User} value={form.member} onChange={v => { setForm({ ...form, member: v }); onMemberChange?.(v); }} options={members.map(m => ({ value: m, label: m }))} placeholder="Sélectionner adhérent" />
             <InputField label="Téléphone" icon={Phone} value={form.phone} onChange={v => setForm({ ...form, phone: v as string })} placeholder="Téléphone" />
             <SelectField label="Type d'abonnement" icon={CreditCard} value={form.type} onChange={updateType} options={subTypes.map(t => ({ value: t.name, label: `${t.name} - ${t.price}DH` }))} placeholder="Type abonnement" />
           </div>
