@@ -887,12 +887,22 @@ function AccessHistory() {
 function Stock() {
   const [search, setSearch] = useState("");
   const [products, setProducts] = useState<any[]>([]);
+  const [supplierNames, setSupplierNames] = useState<string[]>([]);
   const [showAdd, setShowAdd] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
   const [form, setForm] = useState({ code: "", name: "", cat: "", supplier: "", buyPrice: 0, sellPrice: 0, qty: 0, minStock: 1, status: "En stock", photo: "" });
   const [editForm, setEditForm] = useState<any>(form);
 
-  useEffect(() => { (async () => { const d = await boutiqueApi("product-list"); if (d?.products) setProducts(d.products); })(); }, []);
+  useEffect(() => {
+    (async () => {
+      const [prodData, suppData] = await Promise.all([
+        boutiqueApi("product-list"),
+        boutiqueApi("supplier-list"),
+      ]);
+      if (prodData?.products) setProducts(prodData.products);
+      if (suppData?.suppliers) setSupplierNames(suppData.suppliers.map((s: any) => s.name));
+    })();
+  }, []);
 
   const filtered = products.filter((p: any) =>
     p.name?.toLowerCase().includes(search.toLowerCase()) || p.code?.toLowerCase().includes(search.toLowerCase())
@@ -939,7 +949,11 @@ function Stock() {
       />
 
       {showAdd && (
-        <StockAddCard form={form} setForm={setForm} onClose={() => setShowAdd(false)} onSave={addProduct} />
+        <StockAddCard
+          form={form} setForm={setForm} onClose={() => setShowAdd(false)} onSave={addProduct}
+          suppliers={supplierNames}
+          categories={products.map((p: any) => p.cat).filter(Boolean).filter((v: string, i: number, a: string[]) => a.indexOf(v) === i)}
+        />
       )}
       {showEdit && (
         <StockEditCard form={editForm} setForm={setEditForm} onClose={() => setShowEdit(false)} onSave={handleEditProduct} />

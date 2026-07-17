@@ -36,13 +36,24 @@ serve(async (req: Request) => {
       case "product-create": {
         const code = body.code || `PRD${Date.now().toString(36).toUpperCase()}`;
         const qty = body.qty || 0;
+        const buyPrice = body.buyPrice || 0;
         const status = qty <= 0 ? "Rupture" : qty < (body.minStock || 1) ? "Stock bas" : "En stock";
         const { data, error } = await supabase.from("products").insert({
           code, name: body.name, cat: body.cat, supplier: body.supplier,
-          buy_price: body.buyPrice || 0, sell_price: body.sellPrice || 0,
+          buy_price: buyPrice, sell_price: body.sellPrice || 0,
           qty, min_stock: body.minStock || 1, status, photo: body.photo || "",
         }).select().single();
         if (error) throw error;
+
+        // Update supplier balance (what we owe them increases by buyPrice * qty)
+        if (body.supplier) {
+          const totalOwed = buyPrice * qty;
+          await supabase.rpc("update_supplier_balance_by_name", {
+            p_name: body.supplier,
+            amount_change: totalOwed,
+          });
+        }
+
         return new Response(JSON.stringify({ success: true, product: data }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
       case "product-update": {

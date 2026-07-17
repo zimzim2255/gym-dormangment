@@ -44,7 +44,7 @@ CREATE TABLE IF NOT EXISTS sales (
   date VARCHAR(10) NOT NULL,
   client VARCHAR(100),
   product VARCHAR(100),
-  product_code VARCHAR(50) REFERENCES products(code),
+  product_code VARCHAR(50),
   qty INTEGER NOT NULL DEFAULT 1,
   price DECIMAL(10,2) NOT NULL DEFAULT 0,
   total DECIMAL(10,2) NOT NULL DEFAULT 0,
@@ -60,7 +60,7 @@ CREATE TABLE IF NOT EXISTS purchases (
   supplier_name VARCHAR(100),
   supplier_company VARCHAR(100),
   product VARCHAR(100),
-  product_code VARCHAR(50) REFERENCES products(code),
+  product_code VARCHAR(50),
   quantity INTEGER NOT NULL DEFAULT 1,
   price DECIMAL(10,2) NOT NULL DEFAULT 0,
   total DECIMAL(10,2) NOT NULL DEFAULT 0,
@@ -142,6 +142,13 @@ CREATE OR REPLACE FUNCTION update_supplier_balance(p_name VARCHAR, p_company VAR
 RETURNS void AS $$
 BEGIN
   UPDATE suppliers SET balance = balance + amount_change WHERE name = p_name AND company = p_company;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION update_supplier_balance_by_name(p_name VARCHAR, amount_change DECIMAL)
+RETURNS void AS $$
+BEGIN
+  UPDATE suppliers SET balance = balance + amount_change WHERE name = p_name;
 END;
 $$ LANGUAGE plpgsql;
 
