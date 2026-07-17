@@ -6,7 +6,7 @@ import {
   Search, Plus, Filter, Download, Printer, Eye, Pencil, Trash2,
   CheckCircle, XCircle, AlertTriangle, Bell, Menu,
   TrendingUp, TrendingDown, Activity, Fingerprint, QrCode,
-  RefreshCw, BadgeCheck, Scan, ChevronRight, Wifi,
+  RefreshCw, BadgeCheck, Scan, ChevronRight, Wifi, DollarSign,
 } from "lucide-react";
 import {
   AreaChart, Area, BarChart, Bar, LineChart, Line,
@@ -28,12 +28,13 @@ import StaffAddCard from "./components/erp/StaffAddCard";
 import StaffEditCard from "./components/erp/StaffEditCard";
 import ExpenseAddCard from "./components/erp/ExpenseAddCard";
 import AccessControlPanel from "./components/door/AccessControlPanel";
+import CaissePanel from "./components/door/CaissePanel";
 import { getAccessLogs } from "./services/doorService";
 import ExpenseEditCard from "./components/erp/ExpenseEditCard";
 
 type ViewId =
   | "dashboard" | "members" | "subscriptions" | "access" | "history"
-  | "stock" | "sales" | "purchases" | "suppliers" | "staff" | "expenses" | "reports" | "settings";
+  | "stock" | "sales" | "purchases" | "suppliers" | "staff" | "expenses" | "reports" | "settings" | "caisse";
 
 // ─── mock data ────────────────────────────────────────────────────────────────
 
@@ -410,6 +411,18 @@ const FUNCTIONS_URL = import.meta.env.VITE_SUPABASE_URL + "/functions/v1";
 async function api(type: string, data?: any) {
   try {
     const res = await fetch(`${FUNCTIONS_URL}/member-manager`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}` },
+      body: JSON.stringify({ type, ...data }),
+    });
+    if (res.ok) return await res.json();
+    throw new Error("API error");
+  } catch { return null; }
+}
+
+async function boutiqueApi(type: string, data?: any) {
+  try {
+    const res = await fetch(`${FUNCTIONS_URL}/boutique-manager`, {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}` },
       body: JSON.stringify({ type, ...data }),
@@ -871,45 +884,39 @@ function AccessHistory() {
 
 // ─── STOCK ────────────────────────────────────────────────────────────────────
 
-function Stock({ products, setProducts }: { products: typeof PRODUCTS; setProducts: React.Dispatch<React.SetStateAction<typeof PRODUCTS>> }) {
-  type Product = typeof PRODUCTS[number];
+function Stock() {
   const [search, setSearch] = useState("");
+  const [products, setProducts] = useState<any[]>([]);
   const [showAdd, setShowAdd] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
-  const [form, setForm] = useState<Product>({
-    code: "",
-    name: "",
-    cat: "",
-    supplier: "",
-    buyPrice: 0,
-    sellPrice: 0,
-    qty: 0,
-    minStock: 1,
-    status: "En stock",
-    photo: "",
-  });
-  const [editForm, setEditForm] = useState<Product>(form);
-  const filtered = products.filter(p =>
-    p.name.toLowerCase().includes(search.toLowerCase()) || p.code.toLowerCase().includes(search.toLowerCase())
-  );
-  const ruptures = products.filter(p => p.status === "Rupture" || p.status === "Stock bas").length;
+  const [form, setForm] = useState({ code: "", name: "", cat: "", supplier: "", buyPrice: 0, sellPrice: 0, qty: 0, minStock: 1, status: "En stock", photo: "" });
+  const [editForm, setEditForm] = useState<any>(form);
 
-  const addProduct = () => {
-    const code = form.code || `PRD${String(products.length + 1).padStart(3, "0")}`;
-    const status = form.qty <= 0 ? "Rupture" : form.qty < form.minStock ? "Stock bas" : "En stock";
-    setProducts([{ ...form, code, status }, ...products]);
+  useEffect(() => { (async () => { const d = await boutiqueApi("product-list"); if (d?.products) setProducts(d.products); })(); }, []);
+
+  const filtered = products.filter((p: any) =>
+    p.name?.toLowerCase().includes(search.toLowerCase()) || p.code?.toLowerCase().includes(search.toLowerCase())
+  );
+  const ruptures = products.filter((p: any) => p.status === "Rupture" || p.status === "Stock bas").length;
+
+  const addProduct = async () => {
+    const r = await boutiqueApi("product-create", { ...form, code: form.code || undefined });
+    if (r?.product) setProducts([r.product, ...products]);
     setForm({ code: "", name: "", cat: "", supplier: "", buyPrice: 0, sellPrice: 0, qty: 0, minStock: 1, status: "En stock", photo: "" });
     setShowAdd(false);
   };
 
-  const openEditProduct = (product: Product) => {
-    setEditForm(product);
-    setShowEdit(true);
+  const openEditProduct = (product: any) => { setEditForm(product); setShowEdit(true); };
+
+  const handleEditProduct = async () => {
+    const r = await boutiqueApi("product-update", editForm);
+    if (r?.success) setProducts(products.map((p: any) => p.code === editForm.code ? editForm : p));
+    setShowEdit(false);
   };
 
-  const handleEditProduct = () => {
-    setProducts(products.map(item => item.code === editForm.code ? editForm : item));
-    setShowEdit(false);
+  const handleDeleteProduct = async (code: string) => {
+    await boutiqueApi("product-delete", { code });
+    setProducts(products.filter((p: any) => p.code !== code));
   };
 
   return (
@@ -977,72 +984,36 @@ const SALES_DATA = [
   { id: "VNT004", date: "13/07/2025", client: "Nadia Chraibi", product: "Créatine 300g", qty: 1, price: 160, total: 160, payment: "Espèces", emp: "Imane Berrada" },
 ];
 
-function Sales({ products, setProducts }: { products: typeof PRODUCTS; setProducts: React.Dispatch<React.SetStateAction<typeof PRODUCTS>> }) {
-  type Sale = typeof SALES_DATA[number];
+function Sales() {
   const [search, setSearch] = useState("");
-  const [sales, setSales] = useState<Sale[]>(SALES_DATA);
+  const [sales, setSales] = useState<any[]>([]);
   const [showAdd, setShowAdd] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
-  const [editForm, setEditForm] = useState<Sale>({
-    id: "",
-    date: new Date().toLocaleDateString("fr-FR"),
-    client: "",
-    product: "",
-    qty: 1,
-    price: 0,
-    total: 0,
-    payment: "Espèces",
-    emp: "",
-  });
-  const [form, setForm] = useState<Sale>({
-    id: "",
-    date: new Date().toLocaleDateString("fr-FR"),
-    client: "",
-    product: "",
-    qty: 1,
-    price: 0,
-    total: 0,
-    payment: "Espèces",
-    emp: "",
-  });
+  const [editForm, setEditForm] = useState<any>({ id: "", date: "", client: "", product: "", productCode: "", qty: 1, price: 0, total: 0, payment: "Espèces", emp: "" });
+  const [form, setForm] = useState<any>({ id: "", date: new Date().toLocaleDateString("fr-FR"), client: "", product: "", productCode: "", qty: 1, price: 0, total: 0, payment: "Espèces", emp: "" });
 
-  const filtered = sales.filter(s =>
-    s.client.toLowerCase().includes(search.toLowerCase()) ||
-    s.product.toLowerCase().includes(search.toLowerCase())
+  useEffect(() => { (async () => { const d = await boutiqueApi("sale-list"); if (d?.sales) setSales(d.sales); })(); }, []);
+
+  const filtered = sales.filter((s: any) =>
+    s.client?.toLowerCase().includes(search.toLowerCase()) || s.product?.toLowerCase().includes(search.toLowerCase())
   );
 
-  const onQuantityChange = (qty: number) => setForm(prev => ({ ...prev, qty, total: qty * prev.price }));
-  const onPriceChange = (price: number) => setForm(prev => ({ ...prev, price, total: price * prev.qty }));
+  const onQuantityChange = (qty: number) => setForm((prev: any) => ({ ...prev, qty, total: qty * prev.price }));
+  const onPriceChange = (price: number) => setForm((prev: any) => ({ ...prev, price, total: price * prev.qty }));
 
-  const addSale = () => {
-    const id = form.id || `VNT${String(sales.length + 1).padStart(3, "0")}`;
-    setSales([{ ...form, id }, ...sales]);
-    setForm({
-      id: "",
-      date: new Date().toLocaleDateString("fr-FR"),
-      client: "",
-      product: "",
-      qty: 1,
-      price: 0,
-      total: 0,
-      payment: "Espèces",
-      emp: "",
-    });
+  const addSale = async () => {
+    const r = await boutiqueApi("sale-create", form);
+    if (r?.sale) setSales([r.sale, ...sales]);
+    setForm({ id: "", date: new Date().toLocaleDateString("fr-FR"), client: "", product: "", productCode: "", qty: 1, price: 0, total: 0, payment: "Espèces", emp: "" });
     setShowAdd(false);
   };
 
-  const updateSaleQuantity = (qty: number, current: Sale, setter: React.Dispatch<React.SetStateAction<Sale>>) => setter({ ...current, qty, total: qty * current.price });
-  const updateSalePrice = (price: number, current: Sale, setter: React.Dispatch<React.SetStateAction<Sale>>) => setter({ ...current, price, total: price * current.qty });
+  const updateSaleQuantity = (qty: number, current: any, setter: any) => setter({ ...current, qty, total: qty * current.price });
+  const updateSalePrice = (price: number, current: any, setter: any) => setter({ ...current, price, total: price * current.qty });
 
-  const openEditSale = (sale: Sale) => {
-    setEditForm(sale);
-    setShowEdit(true);
-  };
+  const openEditSale = (sale: any) => { setEditForm(sale); setShowEdit(true); };
 
-  const handleEditSale = () => {
-    setSales(sales.map(item => item.id === editForm.id ? editForm : item));
-    setShowEdit(false);
-  };
+  const handleEditSale = () => { setSales(sales.map((item: any) => item.id === editForm.id ? editForm : item)); setShowEdit(false); };
 
   return (
     <div className="p-6 space-y-4">
@@ -1124,68 +1095,36 @@ type Purchase = {
   payment: string;
 };
 
-function Purchases({ products, setProducts }: { products: typeof PRODUCTS; setProducts: React.Dispatch<React.SetStateAction<typeof PRODUCTS>> }) {
+function Purchases() {
   const [search, setSearch] = useState("");
-  const [purchases, setPurchases] = useState<Purchase[]>([]);
+  const [purchases, setPurchases] = useState<any[]>([]);
   const [showAdd, setShowAdd] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
-  const [editForm, setEditForm] = useState<Purchase>({
-    id: "",
-    supplier: "",
-    product: "",
-    quantity: 1,
-    price: 0,
-    total: 0,
-    date: new Date().toLocaleDateString("fr-FR"),
-    payment: "Espèces",
-  });
-  const [form, setForm] = useState<Purchase>({
-    id: "",
-    supplier: "",
-    product: "",
-    quantity: 1,
-    price: 0,
-    total: 0,
-    date: new Date().toLocaleDateString("fr-FR"),
-    payment: "Espèces",
-  });
+  const [editForm, setEditForm] = useState<any>({ id: "", supplier: "", supplierCompany: "", product: "", productCode: "", quantity: 1, price: 0, total: 0, date: "", payment: "Espèces" });
+  const [form, setForm] = useState<any>({ id: "", supplier: "", supplierCompany: "", product: "", productCode: "", quantity: 1, price: 0, total: 0, date: new Date().toLocaleDateString("fr-FR"), payment: "Espèces" });
 
-  const filtered = purchases.filter(p =>
-    p.supplier.toLowerCase().includes(search.toLowerCase()) ||
-    p.product.toLowerCase().includes(search.toLowerCase())
+  useEffect(() => { (async () => { const d = await boutiqueApi("purchase-list"); if (d?.purchases) setPurchases(d.purchases); })(); }, []);
+
+  const filtered = purchases.filter((p: any) =>
+    (p.supplier || p.supplier_name)?.toLowerCase().includes(search.toLowerCase()) ||
+    p.product?.toLowerCase().includes(search.toLowerCase())
   );
 
-  const onQuantityChange = (quantity: number) => setForm(prev => ({ ...prev, quantity, total: quantity * prev.price }));
-  const onPriceChange = (price: number) => setForm(prev => ({ ...prev, price, total: price * prev.quantity }));
+  const onQuantityChange = (quantity: number) => setForm((prev: any) => ({ ...prev, quantity, total: quantity * prev.price }));
+  const onPriceChange = (price: number) => setForm((prev: any) => ({ ...prev, price, total: price * prev.quantity }));
 
-  const addPurchase = () => {
-    const id = form.id || `ACH${String(purchases.length + 1).padStart(3, "0")}`;
-    setPurchases([{ ...form, id }, ...purchases]);
-    setForm({
-      id: "",
-      supplier: "",
-      product: "",
-      quantity: 1,
-      price: 0,
-      total: 0,
-      date: new Date().toLocaleDateString("fr-FR"),
-      payment: "Espèces",
-    });
+  const addPurchase = async () => {
+    const r = await boutiqueApi("purchase-create", form);
+    if (r?.purchase) setPurchases([r.purchase, ...purchases]);
+    setForm({ id: "", supplier: "", supplierCompany: "", product: "", productCode: "", quantity: 1, price: 0, total: 0, date: new Date().toLocaleDateString("fr-FR"), payment: "Espèces" });
     setShowAdd(false);
   };
 
-  const updatePurchaseQuantity = (quantity: number, current: Purchase, setter: React.Dispatch<React.SetStateAction<Purchase>>) => setter({ ...current, quantity, total: quantity * current.price });
-  const updatePurchasePrice = (price: number, current: Purchase, setter: React.Dispatch<React.SetStateAction<Purchase>>) => setter({ ...current, price, total: price * current.quantity });
+  const updatePurchaseQuantity = (quantity: number, current: any, setter: any) => setter({ ...current, quantity, total: quantity * current.price });
+  const updatePurchasePrice = (price: number, current: any, setter: any) => setter({ ...current, price, total: price * current.quantity });
 
-  const openEditPurchase = (purchase: Purchase) => {
-    setEditForm(purchase);
-    setShowEdit(true);
-  };
-
-  const handleEditPurchase = () => {
-    setPurchases(purchases.map(item => item.id === editForm.id ? editForm : item));
-    setShowEdit(false);
-  };
+  const openEditPurchase = (purchase: any) => { setEditForm(purchase); setShowEdit(true); };
+  const handleEditPurchase = () => { setPurchases(purchases.map((item: any) => item.id === editForm.id ? editForm : item)); setShowEdit(false); };
 
   return (
     <div className="p-6 space-y-4">
@@ -1264,26 +1203,32 @@ const SUPPLIERS_DATA = [
 type Supplier = typeof SUPPLIERS_DATA[number];
 
 function Suppliers() {
-  const [suppliers, setSuppliers] = useState<Supplier[]>(SUPPLIERS_DATA);
+  const [suppliers, setSuppliers] = useState<any[]>([]);
   const [showAdd, setShowAdd] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
-  const [form, setForm] = useState<Supplier>({ name: "", company: "", phone: "", email: "", city: "", balance: 0 });
-  const [editForm, setEditForm] = useState<Supplier>(form);
+  const [form, setForm] = useState<any>({ name: "", company: "", phone: "", email: "", city: "", balance: 0 });
+  const [editForm, setEditForm] = useState<any>(form);
 
-  const handleAdd = () => {
-    setSuppliers([{ ...form }, ...suppliers]);
+  useEffect(() => { (async () => { const d = await boutiqueApi("supplier-list"); if (d?.suppliers) setSuppliers(d.suppliers); })(); }, []);
+
+  const handleAdd = async () => {
+    const r = await boutiqueApi("supplier-create", form);
+    if (r?.supplier) setSuppliers([r.supplier, ...suppliers]);
     setForm({ name: "", company: "", phone: "", email: "", city: "", balance: 0 });
     setShowAdd(false);
   };
 
-  const openEdit = (supplier: Supplier) => {
-    setEditForm(supplier);
-    setShowEdit(true);
+  const openEdit = (supplier: any) => { setEditForm(supplier); setShowEdit(true); };
+
+  const handleEdit = async () => {
+    const r = await boutiqueApi("supplier-update", editForm);
+    if (r?.success) setSuppliers(suppliers.map((item: any) => item.id === editForm.id ? editForm : item));
+    setShowEdit(false);
   };
 
-  const handleEdit = () => {
-    setSuppliers(suppliers.map(item => item.name === editForm.name ? editForm : item));
-    setShowEdit(false);
+  const handleDelete = async (id: number) => {
+    await boutiqueApi("supplier-delete", { id });
+    setSuppliers(suppliers.filter((s: any) => s.id !== id));
   };
 
   return (
@@ -1318,7 +1263,7 @@ function Suppliers() {
                 <td className="px-3 py-3 text-sm text-blue-400">{s.email}</td>
                 <TD dim>{s.city}</TD>
                 <td className="px-3 py-3 font-mono text-xs font-bold text-white">{s.balance > 0 ? `${s.balance} DH` : "—"}</td>
-                <td className="px-3 py-3"><ActionIcons onEdit={() => openEdit(s)} onDelete={() => setSuppliers(suppliers.filter(item => item.name !== s.name))} /></td>
+                <td className="px-3 py-3"><ActionIcons onEdit={() => openEdit(s)} onDelete={() => handleDelete(s.id)} /></td>
               </TR>
             ))}
           </tbody>
@@ -1331,27 +1276,35 @@ function Suppliers() {
 // ─── STAFF ────────────────────────────────────────────────────────────────────
 
 function Staff() {
-  type StaffMember = typeof STAFF[number];
-  const [staff, setStaff] = useState<StaffMember[]>(STAFF);
+  const [search, setSearch] = useState("");
+  const [staff, setStaff] = useState<any[]>([]);
   const [showAdd, setShowAdd] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
-  const [form, setForm] = useState<StaffMember>({ name: "", phone: "", cin: "", role: "", salary: 0, hired: "", status: "Présent" });
-  const [editForm, setEditForm] = useState<StaffMember>(form);
+  const [form, setForm] = useState<any>({ name: "", phone: "", cin: "", role: "", salary: 0, hired: "", status: "Présent" });
+  const [editForm, setEditForm] = useState<any>(form);
 
-  const handleAdd = () => {
-    setStaff([form, ...staff]);
+  useEffect(() => { (async () => { const d = await boutiqueApi("staff-list"); if (d?.staff) setStaff(d.staff); })(); }, []);
+
+  const filtered = staff.filter((s: any) => s.name?.toLowerCase().includes(search.toLowerCase()));
+
+  const handleAdd = async () => {
+    const r = await boutiqueApi("staff-create", form);
+    if (r?.staff) setStaff([r.staff, ...staff]);
     setForm({ name: "", phone: "", cin: "", role: "", salary: 0, hired: "", status: "Présent" });
     setShowAdd(false);
   };
 
-  const openEdit = (staffMember: StaffMember) => {
-    setEditForm(staffMember);
-    setShowEdit(true);
+  const openEdit = (staffMember: any) => { setEditForm(staffMember); setShowEdit(true); };
+
+  const handleEdit = async () => {
+    const r = await boutiqueApi("staff-update", editForm);
+    if (r?.success) setStaff(staff.map((item: any) => item.cin === editForm.cin ? editForm : item));
+    setShowEdit(false);
   };
 
-  const handleEdit = () => {
-    setStaff(staff.map(item => item.cin === editForm.cin ? editForm : item));
-    setShowEdit(false);
+  const handleDelete = async (cin: string) => {
+    await boutiqueApi("staff-delete", { cin });
+    setStaff(staff.filter((s: any) => s.cin !== cin));
   };
 
   return (
@@ -1407,28 +1360,36 @@ function Staff() {
 // ─── EXPENSES ─────────────────────────────────────────────────────────────────
 
 function Expenses() {
-  type Expense = typeof EXPENSES[number];
-  const [expenses, setExpenses] = useState<Expense[]>(EXPENSES);
+  const [search, setSearch] = useState("");
+  const [expenses, setExpenses] = useState<any[]>([]);
   const [showAdd, setShowAdd] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
-  const [form, setForm] = useState<Expense>({ cat: "", desc: "", amount: 0, date: new Date().toLocaleDateString("fr-FR"), resp: "", note: "" });
-  const [editForm, setEditForm] = useState<Expense>(form);
-  const total = expenses.reduce((sum, e) => sum + e.amount, 0);
+  const [form, setForm] = useState<any>({ cat: "", desc: "", amount: 0, date: new Date().toLocaleDateString("fr-FR"), resp: "", note: "" });
+  const [editForm, setEditForm] = useState<any>(form);
 
-  const handleAdd = () => {
-    setExpenses([form, ...expenses]);
+  useEffect(() => { (async () => { const d = await boutiqueApi("expense-list"); if (d?.expenses) setExpenses(d.expenses); })(); }, []);
+
+  const filtered = expenses.filter((e: any) => e.cat?.toLowerCase().includes(search.toLowerCase()) || e.description?.toLowerCase().includes(search.toLowerCase()));
+  const total = expenses.reduce((sum: number, e: any) => sum + (e.amount || 0), 0);
+
+  const handleAdd = async () => {
+    const r = await boutiqueApi("expense-create", form);
+    if (r?.expense) setExpenses([r.expense, ...expenses]);
     setForm({ cat: "", desc: "", amount: 0, date: new Date().toLocaleDateString("fr-FR"), resp: "", note: "" });
     setShowAdd(false);
   };
 
-  const openEdit = (expense: Expense) => {
-    setEditForm(expense);
-    setShowEdit(true);
+  const openEdit = (expense: any) => { setEditForm(expense); setShowEdit(true); };
+
+  const handleEdit = async () => {
+    const r = await boutiqueApi("expense-update", editForm);
+    if (r?.success) setExpenses(expenses.map((item: any) => item.id === editForm.id ? editForm : item));
+    setShowEdit(false);
   };
 
-  const handleEdit = () => {
-    setExpenses(expenses.map(item => item.date === editForm.date && item.desc === editForm.desc ? editForm : item));
-    setShowEdit(false);
+  const handleDelete = async (id: number) => {
+    await boutiqueApi("expense-delete", { id });
+    setExpenses(expenses.filter((e: any) => e.id !== id));
   };
 
   return (
@@ -1462,12 +1423,12 @@ function Expenses() {
                 <td className="px-3 py-3">
                   <span className="px-2 py-0.5 rounded bg-violet-500/10 text-violet-400 text-xs font-medium">{e.cat}</span>
                 </td>
-                <TD>{e.desc}</TD>
+                <TD>{e.description || e.desc}</TD>
                 <td className="px-3 py-3 font-mono text-sm font-bold text-red-400">{e.amount.toLocaleString()} DH</td>
                 <TD mono dim>{e.date}</TD>
                 <TD dim>{e.resp}</TD>
-                <TD dim>{e.note}</TD>
-                <td className="px-3 py-3"><ActionIcons onEdit={() => openEdit(e)} onDelete={() => setExpenses(expenses.filter((item, index) => index !== i))} /></td>
+                <TD dim>{e.note || "—"}</TD>
+                <td className="px-3 py-3"><ActionIcons onEdit={() => openEdit(e)} onDelete={() => handleDelete(e.id)} /></td>
               </TR>
             ))}
           </tbody>
@@ -1630,6 +1591,7 @@ const NAV: NavItem[] = [
   { id: "purchases", label: "Achats", Icon: Truck, group: "Boutique" },
   { id: "suppliers", label: "Fournisseurs", Icon: Truck, group: "Boutique" },
   { id: "staff", label: "Personnel", Icon: UserCheck, group: "RH & Finance" },
+  { id: "caisse", label: "Caisse", Icon: DollarSign, group: "RH & Finance" },
   { id: "expenses", label: "Dépenses", Icon: Receipt, group: "RH & Finance" },
   { id: "reports", label: "Rapports", Icon: BarChart2, group: "RH & Finance" },
   { id: "settings", label: "Paramètres", Icon: Settings },
@@ -1734,7 +1696,6 @@ function Sidebar({ view, setView }: { view: ViewId; setView: (v: ViewId) => void
 
 export default function App() {
   const [view, setView] = useState<ViewId>("dashboard");
-  const [products, setProducts] = useState(PRODUCTS);
 
   const renderView = () => {
     switch (view) {
@@ -1743,11 +1704,12 @@ export default function App() {
       case "subscriptions": return <Subscriptions />;
       case "access": return <AccessControl />;
       case "history": return <AccessHistory />;
-      case "stock": return <Stock products={products} setProducts={setProducts} />;
-      case "sales": return <Sales products={products} setProducts={setProducts} />;
-      case "purchases": return <Purchases products={products} setProducts={setProducts} />;
+      case "stock": return <Stock />;
+      case "sales": return <Sales />;
+      case "purchases": return <Purchases />;
       case "suppliers": return <Suppliers />;
       case "staff": return <Staff />;
+      case "caisse": return <CaissePanel />;
       case "expenses": return <Expenses />;
       case "reports": return <Reports />;
       case "settings": return <SettingsView />;

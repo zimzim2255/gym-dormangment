@@ -1,3 +1,4 @@
+
 // ═══════════════════════════════════════════════════════════════════════════════
 //  Subscription Manager - Edge Function
 //  ───────────────────────────────────────────────────────────────────────────────
@@ -49,6 +50,19 @@ serve(async (req: Request) => {
         }).select().single();
 
         if (error) throw error;
+
+        // If paid amount > 0, add to caisse
+        if (paid > 0) {
+          await supabase.rpc("update_caisse", { amount_change: paid });
+          await supabase.from("caisse_transactions").insert({
+            type: "abonnement",
+            label: `Abonnement ${subId} - ${body.subType} (${memberId})`,
+            amount: paid,
+            reference: subId,
+            date: new Date().toLocaleDateString("fr-FR"),
+          });
+        }
+
         return new Response(JSON.stringify({ success: true, subscription: sub }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
 
