@@ -1,15 +1,17 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 //  SenseFace 3A/3B Access Control Dashboard
 //  ───────────────────────────────────────────────────────────────────────────────
-//  Live dashboard - read only. The SenseFace terminal handles scanning
-//  automatically via the zkteco-webhook edge function.
-//  This shows real-time logs and stats from Supabase.
+//  Live dashboard showing:
+//  1. Latest scan result (from access_logs)
+//  2. Today's stats (from Supabase)
+//  3. Recent access logs
+//  4. Terminal online/offline status
 // ═══════════════════════════════════════════════════════════════════════════════
 
 import { useState, useEffect, useCallback } from "react";
 import {
   Shield, Clock, Users, CheckCircle, XCircle, AlertTriangle,
-  Wifi, WifiOff, RefreshCw, Activity,
+  Wifi, WifiOff, RefreshCw, Activity, Fingerprint, Scan, QrCode, Smartphone,
 } from "lucide-react";
 import { getDoorStats, getAccessLogs, getTerminals } from "../../services/doorService";
 
@@ -26,6 +28,16 @@ function Badge({ s }: { s: string }) {
       {s}
     </span>
   );
+}
+
+function AuthIcon({ method }: { method: string }) {
+  switch (method) {
+    case "face": return <Scan className="w-4 h-4" />;
+    case "fingerprint": return <Fingerprint className="w-4 h-4" />;
+    case "rfid": return <Wifi className="w-4 h-4" />;
+    case "qr": return <QrCode className="w-4 h-4" />;
+    default: return <Smartphone className="w-4 h-4" />;
+  }
 }
 
 export default function AccessControlPanel() {
@@ -53,6 +65,9 @@ export default function AccessControlPanel() {
     const interval = setInterval(fetchData, 10000); // Auto-refresh every 10s
     return () => clearInterval(interval);
   }, [fetchData]);
+
+  // Latest scan result (first log entry)
+  const latestLog = logs[0];
 
   return (
     <div className="p-6 space-y-5">
@@ -94,6 +109,78 @@ export default function AccessControlPanel() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+        {/* Latest Scan Result */}
+        <div className="bg-card border border-white/5 rounded-lg p-6 flex flex-col">
+          <div className="mb-4 flex items-center justify-between">
+            <h3 className="font-semibold text-white text-sm">Dernier scan</h3>
+            {latestLog && (
+              <span className="text-xs text-white/25 font-mono">{latestLog.time}</span>
+            )}
+          </div>
+
+          <div className="flex-1 flex flex-col items-center justify-center gap-4">
+            {/* Scanner Display */}
+            <div className={`w-40 h-40 rounded-2xl border-2 flex items-center justify-center transition-all duration-300 bg-[#080b12] ${
+              latestLog
+                ? latestLog.status === "Autorisé" ? "border-emerald-500"
+                  : latestLog.status === "Expiré" ? "border-red-500"
+                  : latestLog.status === "Paiement restant" ? "border-amber-500"
+                  : "border-red-500"
+                : "border-white/10"
+            }`}>
+              {latestLog ? (
+                <div className="flex flex-col items-center gap-2 px-4 text-center">
+                  {latestLog.status === "Autorisé"
+                    ? <CheckCircle className="w-10 h-10 text-emerald-400" />
+                    : latestLog.status === "Expiré" || latestLog.status === "Refusé"
+                    ? <XCircle className="w-10 h-10 text-red-400" />
+                    : <AlertTriangle className="w-10 h-10 text-amber-400" />
+                  }
+                  <span className={`text-xs font-bold font-mono ${
+                    latestLog.status === "Autorisé" ? "text-emerald-400"
+                    : latestLog.status === "Expiré" || latestLog.status === "Refusé" ? "text-red-400"
+                    : "text-amber-400"
+                  }`}>
+                    {latestLog.status === "Autorisé" ? "ACCÈS AUTORISÉ"
+                    : latestLog.status === "Paiement restant" ? "PAIEMENT REQUIS"
+                    : "ACCÈS REFUSÉ"}
+                  </span>
+                  <span className="text-[10px] text-white/20 font-mono">{latestLog.date}</span>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center gap-2 text-white/15">
+                  <Fingerprint className="w-10 h-10" />
+                  <span className="text-xs font-mono">En attente</span>
+                  <span className="text-[10px] text-white/10">Aucun scan récent</span>
+                </div>
+              )}
+            </div>
+
+            {/* Member Info (if available) */}
+            {latestLog && (
+              <div className="w-full space-y-2">
+                <div className="flex items-center gap-2.5 bg-white/3 rounded-lg p-3">
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 ${
+                    latestLog.status === "Autorisé" ? "bg-emerald-500/20 text-emerald-400"
+                    : latestLog.status === "Paiement restant" ? "bg-amber-500/20 text-amber-400"
+                    : "bg-red-500/20 text-red-400"
+                  }`}>
+                    {latestLog.member_name?.charAt(0) || "?"}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium text-white truncate">{latestLog.member_name || "Inconnu"}</div>
+                    <div className="text-xs text-white/30 flex items-center gap-1">
+                      <AuthIcon method={latestLog.method} />
+                      <span className="font-mono">{latestLog.method}</span>
+                    </div>
+                  </div>
+                  <Badge s={latestLog.status} />
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
         {/* Access Logs Table */}
         <div className="lg:col-span-2 bg-card border border-white/5 rounded-lg overflow-x-auto">
           <div className="px-5 py-4 border-b border-white/5 flex items-center justify-between">
@@ -114,7 +201,7 @@ export default function AccessControlPanel() {
               </tr>
             </thead>
             <tbody>
-              {logs.slice(0, 20).map((log: any, i: number) => (
+              {logs.slice(0, 15).map((log: any, i: number) => (
                 <tr key={log.id || i} className={`border-b border-white/5 hover:bg-white/[0.03] transition-colors ${i % 2 !== 0 ? "bg-white/[0.01]" : ""}`}>
                   <td className="px-3 py-3 font-mono text-xs text-[#f04e23]">{log.time}</td>
                   <td className="px-3 py-3 text-sm text-white">{log.member_name}</td>
@@ -142,35 +229,35 @@ export default function AccessControlPanel() {
             </tbody>
           </table>
         </div>
+      </div>
 
-        {/* Terminals Panel */}
-        <div className="bg-card border border-white/5 rounded-lg p-5">
-          <div className="flex items-center gap-2 mb-4">
-            <Shield className="w-4 h-4 text-white/30" />
-            <h3 className="font-semibold text-white text-sm">Terminaux</h3>
-          </div>
-          <div className="space-y-3">
-            {terminals.map((t: any) => (
-              <div key={t.terminal_id} className="bg-white/3 rounded-lg p-3.5 flex items-start gap-3">
-                {t.is_online ? (
-                  <Wifi className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" />
-                ) : (
-                  <WifiOff className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
-                )}
-                <div className="flex-1 min-w-0">
-                  <div className="font-medium text-white text-sm">{t.location}</div>
-                  <div className="font-mono text-xs text-white/30">{t.terminal_id}</div>
-                  <div className="text-xs text-white/25 mt-0.5">{t.model} — {t.ip_address}</div>
-                  <div className={`text-xs font-mono mt-1 ${t.is_online ? "text-emerald-400" : "text-red-400"}`}>
-                    {t.is_online ? "En ligne" : "Hors ligne"}
-                  </div>
+      {/* Terminals Panel */}
+      <div className="bg-card border border-white/5 rounded-lg p-5">
+        <div className="flex items-center gap-2 mb-4">
+          <Shield className="w-4 h-4 text-white/30" />
+          <h3 className="font-semibold text-white text-sm">Terminaux</h3>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {terminals.map((t: any) => (
+            <div key={t.terminal_id} className="bg-white/3 rounded-lg p-3.5 flex items-start gap-3">
+              {t.is_online ? (
+                <Wifi className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" />
+              ) : (
+                <WifiOff className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
+              )}
+              <div className="flex-1 min-w-0">
+                <div className="font-medium text-white text-sm">{t.location}</div>
+                <div className="font-mono text-xs text-white/30">{t.terminal_id}</div>
+                <div className="text-xs text-white/25 mt-0.5">{t.model} — {t.ip_address}</div>
+                <div className={`text-xs font-mono mt-1 ${t.is_online ? "text-emerald-400" : "text-red-400"}`}>
+                  {t.is_online ? "En ligne" : "Hors ligne"}
                 </div>
               </div>
-            ))}
-            {terminals.length === 0 && !loading && (
-              <div className="text-center py-6 text-white/20 text-sm">Aucun terminal configuré</div>
-            )}
-          </div>
+            </div>
+          ))}
+          {terminals.length === 0 && !loading && (
+            <div className="col-span-full text-center py-6 text-white/20 text-sm">Aucun terminal configuré</div>
+          )}
         </div>
       </div>
     </div>
