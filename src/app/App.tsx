@@ -569,31 +569,52 @@ function Members() {
 
 // ─── SUBSCRIPTIONS ────────────────────────────────────────────────────────────
 
-type Subscription = typeof SUBSCRIPTIONS[number];
+type Subscription = {
+  id: string; member: string; phone: string; type: string; start: string;
+  end: string; price: number; paid: number; remaining: number;
+  status: string; payment: string; observation: string;
+};
+
+async function subApi(type: string, data?: any) {
+  try {
+    const res = await fetch(`${FUNCTIONS_URL}/subscription-manager`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}` },
+      body: JSON.stringify({ type, ...data }),
+    });
+    if (res.ok) return await res.json();
+    throw new Error("API error");
+  } catch { return null; }
+}
 
 function Subscriptions() {
   const [search, setSearch] = useState("");
-  const [subscriptions, setSubscriptions] = useState<Subscription[]>(SUBSCRIPTIONS);
+  const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
   const [showAdd, setShowAdd] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
+  const today = new Date().toLocaleDateString("fr-FR");
   const [form, setForm] = useState({
-    id: "",
-    member: "",
-    phone: "",
-    type: "Mensuel",
-    start: new Date().toLocaleDateString("fr-FR"),
-    end: "",
-    price: 200,
-    paid: 0,
-    remaining: 200,
-    status: "Non payé",
-    payment: "Espèces",
-    observation: "",
+    id: "", member: "", phone: "", type: "Mensuel",
+    start: today, end: computeEndDate(today, "Mensuel"),
+    price: 200, paid: 0, remaining: 200, status: "Non payé",
+    payment: "Espèces", observation: "",
   });
   const [editForm, setEditForm] = useState(form);
 
+  // Load subscriptions from Supabase on mount
+  const [memberNames, setMemberNames] = useState<{ id: string; name: string }[]>([]);
+
+  useEffect(() => {
+    (async () => {
+      const [subData, memberData] = await Promise.all([subApi("list"), api("list")]);
+      if (subData?.subscriptions) setSubscriptions(subData.subscriptions);
+      if (memberData?.members) setMemberNames(memberData.members.map((m: any) => ({ id: m.id, name: m.name })));
+    })();
+  }, []);
+
   const filtered = subscriptions.filter(s =>
-    s.member.toLowerCase().includes(search.toLowerCase()) || s.id.toLowerCase().includes(search.toLowerCase())
+    s.member?.toLowerCase().includes(search.toLowerCase()) ||
+    s.id?.toLowerCase().includes(search.toLowerCase())
   );
 
   const updateSubscriptionType = (type: string, current: typeof form, setter: typeof setForm) => {
@@ -616,23 +637,29 @@ function Subscriptions() {
     setter({ ...current, paid, remaining, status });
   };
 
-  const addSubscription = () => {
-    const id = form.id || `AB${String(subscriptions.length + 1).padStart(3, "0")}`;
-    setSubscriptions([{ ...form, id }, ...subscriptions]);
-    setForm({
-      id: "",
-      member: "",
-      phone: "",
-      type: "Mensuel",
-      start: new Date().toLocaleDateString("fr-FR"),
-      end: computeEndDate(new Date().toLocaleDateString("fr-FR"), "Mensuel"),
-      price: 200,
-      paid: 0,
-      remaining: 200,
-      status: "Non payé",
-      payment: "Espèces",
-      observation: "",
+  const addSubscription = async () => {
+    // Map member name to member ID if possible
+    const selectedMember = memberNames.find(m => m.name === form.member);
+    const memberId = selectedMember?.id || form.member;
+
+    const result = await subApi("create", {
+      memberId, subType: form.type,
+      subStart: form.start, subEnd: form.end,
+      price: form.price, paid: form.paid,
     });
+    if (result?.subscription) {
+      const s = result.subscription;
+      const newSub: Subscription = {
+        id: s.id, member: form.member, phone: form.phone, type: s.sub_type,
+        start: s.sub_start, end: s.sub_end, price: s.price, paid: s.paid,
+        remaining: s.remaining, status: s.sub_status, payment: form.payment, observation: "",
+      };
+      setSubscriptions([newSub, ...subscriptions]);
+    }
+    setForm({ id: "", member: "", phone: "", type: "Mensuel",
+      start: new Date().toLocaleDateString("fr-FR"), end: "",
+      price: 200, paid: 0, remaining: 200, status: "Non payé",
+      payment: "Espèces", observation: "" });
     setShowAdd(false);
   };
 
@@ -641,9 +668,21 @@ function Subscriptions() {
     setShowEdit(true);
   };
 
-  const handleEditSubscription = () => {
-    setSubscriptions(subscriptions.map(item => item.id === editForm.id ? editForm : item));
+  const handleEditSubscription = async () => {
+    const result = await subApi("update", {
+      id: editForm.id, sub_type: editForm.type,
+      sub_start: editForm.start, sub_end: editForm.end,
+      price: editForm.price, paid: editForm.paid,
+    });
+    if (result?.success) {
+      setSubscriptions(subscriptions.map(item => item.id === editForm.id ? editForm : item));
+    }
     setShowEdit(false);
+  };
+
+  const handleDeleteSubscription = async (id: string) => {
+    await subApi("delete", { id });
+    setSubscriptions(subscriptions.filter(item => item.id !== id));
   };
 
   return (
@@ -666,7 +705,7 @@ function Subscriptions() {
           setForm={setForm}
           onClose={() => setShowAdd(false)}
           onSave={addSubscription}
-          members={MEMBERS.map(member => member.name)}
+          members={memberNames.map(m => m.name)}
           subTypes={SUB_TYPES_DATA}
           updateType={type => updateSubscriptionType(type, form, setForm)}
           updateStart={start => updateSubscriptionStart(start, form, setForm)}
@@ -715,7 +754,7 @@ function Subscriptions() {
                 <td className="px-3 py-3">
                   <ActionIcons
                     onEdit={() => openEditSubscription(s)}
-                    onDelete={() => setSubscriptions(subscriptions.filter(item => item.id !== s.id))}
+                    onDelete={() => handleDeleteSubscription(s.id)}
                     onPrint={() => window.alert("Imprimer contrat / reçu")}
                   />
                 </td>
