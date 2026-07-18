@@ -1044,6 +1044,7 @@ function Sales() {
   };
 
   const handleDeleteSale = async (id: string) => {
+    if (!window.confirm("Êtes-vous sûr de vouloir supprimer cette vente ?")) return;
     await boutiqueApi("sale-delete", { id });
     setSales(sales.filter((item: any) => item.id !== id));
   };
@@ -1131,12 +1132,25 @@ type Purchase = {
 function Purchases() {
   const [search, setSearch] = useState("");
   const [purchases, setPurchases] = useState<any[]>([]);
+  const [supplierNames, setSupplierNames] = useState<string[]>([]);
+  const [productOptions, setProductOptions] = useState<any[]>([]);
   const [showAdd, setShowAdd] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
   const [editForm, setEditForm] = useState<any>({ id: "", supplier: "", supplierCompany: "", product: "", productCode: "", quantity: 1, price: 0, total: 0, date: "", payment: "Espèces" });
   const [form, setForm] = useState<any>({ id: "", supplier: "", supplierCompany: "", product: "", productCode: "", quantity: 1, price: 0, total: 0, date: new Date().toLocaleDateString("fr-FR"), payment: "Espèces" });
 
-  useEffect(() => { (async () => { const d = await boutiqueApi("purchase-list"); if (d?.purchases) setPurchases(d.purchases); })(); }, []);
+  useEffect(() => {
+    (async () => {
+      const [purData, suppData, prodData] = await Promise.all([
+        boutiqueApi("purchase-list"),
+        boutiqueApi("supplier-list"),
+        boutiqueApi("product-list"),
+      ]);
+      if (purData?.purchases) setPurchases(purData.purchases);
+      if (suppData?.suppliers) setSupplierNames(suppData.suppliers.map((s: any) => s.name));
+      if (prodData?.products) setProductOptions(prodData.products);
+    })();
+  }, []);
 
   const filtered = purchases.filter((p: any) =>
     (p.supplier || p.supplier_name)?.toLowerCase().includes(search.toLowerCase()) ||
@@ -1147,8 +1161,11 @@ function Purchases() {
   const onPriceChange = (price: number) => setForm((prev: any) => ({ ...prev, price, total: price * prev.quantity }));
 
   const addPurchase = async () => {
-    const r = await boutiqueApi("purchase-create", form);
-    if (r?.purchase) setPurchases([r.purchase, ...purchases]);
+    const r = await boutiqueApi("purchase-create", { ...form, supplierCompany: form.supplier });
+    if (r?.purchase) {
+      const p = r.purchase;
+      setPurchases([{ ...p, supplier: p.supplier_name || form.supplier }, ...purchases]);
+    }
     setForm({ id: "", supplier: "", supplierCompany: "", product: "", productCode: "", quantity: 1, price: 0, total: 0, date: new Date().toLocaleDateString("fr-FR"), payment: "Espèces" });
     setShowAdd(false);
   };
@@ -1157,7 +1174,11 @@ function Purchases() {
   const updatePurchasePrice = (price: number, current: any, setter: any) => setter({ ...current, price, total: price * current.quantity });
 
   const openEditPurchase = (purchase: any) => { setEditForm(purchase); setShowEdit(true); };
-  const handleEditPurchase = () => { setPurchases(purchases.map((item: any) => item.id === editForm.id ? editForm : item)); setShowEdit(false); };
+  const handleEditPurchase = async () => {
+    const r = await boutiqueApi("purchase-update", editForm);
+    if (r?.success) setPurchases(purchases.map((item: any) => item.id === editForm.id ? editForm : item));
+    setShowEdit(false);
+  };
 
   return (
     <div className="p-6 space-y-4">
@@ -1179,8 +1200,8 @@ function Purchases() {
           setForm={setForm}
           onClose={() => setShowAdd(false)}
           onSave={addPurchase}
-          suppliers={SUPPLIERS_DATA}
-          products={PRODUCTS}
+          suppliers={supplierNames}
+          products={productOptions}
           onQuantityChange={quantity => updatePurchaseQuantity(quantity, form, setForm)}
           onPriceChange={price => updatePurchasePrice(price, form, setForm)}
         />
@@ -1208,7 +1229,7 @@ function Purchases() {
           <tbody>
             {filtered.map((p, i) => (
               <TR key={p.id} i={i}>
-                <TD>{p.supplier}</TD>
+                <TD>{p.supplier || p.supplier_name}</TD>
                 <TD>{p.product}</TD>
                 <TD mono dim>{p.quantity}</TD>
                 <TD mono dim>{p.price} DH</TD>

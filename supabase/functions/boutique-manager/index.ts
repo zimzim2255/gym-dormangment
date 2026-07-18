@@ -221,6 +221,34 @@ serve(async (req: Request) => {
 
         return new Response(JSON.stringify({ success: true, purchase }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
+      case "purchase-update": {
+        const { data: existing } = await supabase.from("purchases").select("*").eq("id", body.id).single();
+        if (!existing) throw new Error("Purchase not found");
+
+        const oldTotal = existing.total;
+        const newTotal = body.total || 0;
+        const diff = newTotal - oldTotal;
+
+        const { error } = await supabase.from("purchases").update({
+          supplier_name: body.supplier, product: body.product,
+          quantity: body.quantity || 1, price: body.price || 0,
+          total: newTotal, date: body.date, payment: body.payment || "Espèces",
+        }).eq("id", body.id);
+        if (error) throw error;
+
+        // Adjust caisse by the difference (purchases decrease caisse)
+        if (diff !== 0) {
+          await supabase.rpc("update_caisse", { amount_change: -diff });
+          await supabase.from("caisse_transactions").insert({
+            type: "achat",
+            label: `Modification achat ${body.id}: ${oldTotal}DH → ${newTotal}DH`,
+            amount: -diff,
+            date: body.date || today(),
+          });
+        }
+
+        return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
       case "purchase-list": {
         const { data } = await supabase.from("purchases").select("*").order("created_at", { ascending: false });
         return new Response(JSON.stringify({ purchases: data }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
