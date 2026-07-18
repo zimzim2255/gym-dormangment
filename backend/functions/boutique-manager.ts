@@ -116,6 +116,37 @@ serve(async (req: Request) => {
 
         return new Response(JSON.stringify({ success: true, sale }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
+      case "sale-update": {
+        // Get existing sale to calculate caisse difference
+        const { data: existing } = await supabase.from("sales").select("*").eq("id", body.id).single();
+        if (!existing) throw new Error("Sale not found");
+
+        const oldTotal = existing.total;
+        const newTotal = body.total || 0;
+        const diff = newTotal - oldTotal;
+
+        // Update the sale record
+        const { error } = await supabase.from("sales").update({
+          date: body.date, client: body.client, product: body.product,
+          qty: body.qty || 1, price: body.price || 0,
+          total: newTotal, payment: body.payment || "Espèces", emp: body.emp || "",
+        }).eq("id", body.id);
+        if (error) throw error;
+
+        // Adjust caisse by the difference
+        if (diff !== 0) {
+          await supabase.rpc("update_caisse", { amount_change: diff });
+          await supabase.from("caisse_transactions").insert({
+            type: "vente",
+            label: `Modification vente ${body.id}: ${oldTotal}DH → ${newTotal}DH`,
+            amount: diff,
+            payment_method: body.payment || existing.payment || "Espèces",
+            date: body.date || today(),
+          });
+        }
+
+        return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
       case "sale-list": {
         const { data } = await supabase.from("sales").select("*").order("created_at", { ascending: false });
         return new Response(JSON.stringify({ sales: data }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });

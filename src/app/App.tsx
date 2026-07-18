@@ -1037,7 +1037,11 @@ function Sales() {
 
   const openEditSale = (sale: any) => { setEditForm(sale); setShowEdit(true); };
 
-  const handleEditSale = () => { setSales(sales.map((item: any) => item.id === editForm.id ? editForm : item)); setShowEdit(false); };
+  const handleEditSale = async () => {
+    const r = await boutiqueApi("sale-update", editForm);
+    if (r?.success) setSales(sales.map((item: any) => item.id === editForm.id ? editForm : item));
+    setShowEdit(false);
+  };
 
   return (
     <div className="p-6 space-y-4">
