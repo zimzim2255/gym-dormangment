@@ -81,8 +81,9 @@ CREATE TABLE IF NOT EXISTS caisse_transactions (
   id BIGSERIAL PRIMARY KEY,
   type VARCHAR(20) NOT NULL CHECK (type IN ('vente', 'abonnement', 'achat', 'depense', 'approvisionnement')),
   label VARCHAR(200) NOT NULL,
-  amount DECIMAL(10,2) NOT NULL DEFAULT 0,       -- Positive = in, Negative = out
-  reference VARCHAR(100),                         -- Sale ID, Subscription ID, etc.
+  amount DECIMAL(10,2) NOT NULL DEFAULT 0,
+  payment_method VARCHAR(20) DEFAULT 'Espèces' CHECK (payment_method IN ('Espèces', 'Chèque', 'Virement')),
+  reference VARCHAR(100),
   date VARCHAR(10) NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );

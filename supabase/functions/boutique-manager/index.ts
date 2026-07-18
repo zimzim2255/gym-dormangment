@@ -107,10 +107,11 @@ serve(async (req: Request) => {
 
         // Increase caisse
         const total = body.total || 0;
+        const paymentMethod = body.payment || "Espèces";
         await supabase.rpc("update_caisse", { amount_change: total });
         await supabase.from("caisse_transactions").insert({
           type: "vente", label: `Vente ${id} - ${body.product || ""}`,
-          amount: total, reference: id, date: body.date || today(),
+          amount: total, payment_method: paymentMethod, reference: id, date: body.date || today(),
         });
 
         return new Response(JSON.stringify({ success: true, sale }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });

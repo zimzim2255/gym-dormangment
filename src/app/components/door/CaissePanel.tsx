@@ -3,10 +3,11 @@
 //  ───────────────────────────────────────────────────────────────────────────────
 //  Shows current cash amount and transaction history.
 //  Auto-updates from: ventes (+), abonnements (+), achats (-), dépenses (-)
+//  Payment methods: Espèces, Chèque, Virement
 // ═══════════════════════════════════════════════════════════════════════════════
 
 import { useState, useEffect, useCallback } from "react";
-import { DollarSign, TrendingUp, TrendingDown, RefreshCw, ArrowUpRight, ArrowDownRight, Wallet } from "lucide-react";
+import { DollarSign, TrendingUp, TrendingDown, RefreshCw, ArrowUpRight, ArrowDownRight, Wallet, Banknote, CreditCard, Landmark } from "lucide-react";
 
 const FUNCTIONS_URL = import.meta.env.VITE_SUPABASE_URL + "/functions/v1";
 
@@ -28,6 +29,12 @@ const TYPE_LABELS: Record<string, { label: string; color: string; Icon: any }> =
   achat: { label: "Achat", color: "text-red-400", Icon: TrendingDown },
   depense: { label: "Dépense", color: "text-red-400", Icon: TrendingDown },
   approvisionnement: { label: "Approvisionnement", color: "text-blue-400", Icon: TrendingUp },
+};
+
+const PAYMENT_ICONS: Record<string, any> = {
+  Espèces: Banknote,
+  Chèque: CreditCard,
+  Virement: Landmark,
 };
 
 export default function CaissePanel() {
@@ -53,6 +60,11 @@ export default function CaissePanel() {
 
   const income = transactions.filter((t: any) => t.amount > 0).reduce((s: number, t: any) => s + t.amount, 0);
   const expenses = transactions.filter((t: any) => t.amount < 0).reduce((s: number, t: any) => s + Math.abs(t.amount), 0);
+
+  // Payment method breakdown
+  const byMethod = (method: string) =>
+    transactions.filter((t: any) => (t.payment_method || "Espèces") === method)
+      .reduce((s: number, t: any) => s + t.amount, 0);
 
   return (
     <div className="p-6 space-y-5">
@@ -101,6 +113,30 @@ export default function CaissePanel() {
         </div>
       </div>
 
+      {/* Payment Method Breakdown */}
+      <div className="grid grid-cols-3 gap-3">
+        {[
+          { method: "Espèces", Icon: Banknote, color: "text-emerald-400", bg: "bg-emerald-500/10" },
+          { method: "Chèque", Icon: CreditCard, color: "text-blue-400", bg: "bg-blue-500/10" },
+          { method: "Virement", Icon: Landmark, color: "text-violet-400", bg: "bg-violet-500/10" },
+        ].map(pm => {
+          const total = byMethod(pm.method);
+          return (
+            <div key={pm.method} className="bg-card border border-white/5 rounded-lg p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <div className={`w-8 h-8 rounded ${pm.bg} flex items-center justify-center`}>
+                  <pm.Icon className={`w-4 h-4 ${pm.color}`} />
+                </div>
+                <span className="text-sm text-white/60">{pm.method}</span>
+              </div>
+              <div className={`font-mono text-lg font-bold ${total >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+                {total >= 0 ? "+" : ""}{total.toLocaleString()} DH
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
       {/* Transactions */}
       <div className="bg-card border border-white/5 rounded-lg">
         <div className="px-5 py-4 border-b border-white/5 flex items-center justify-between">
@@ -117,6 +153,7 @@ export default function CaissePanel() {
             <div className="px-5 py-10 text-center text-white/20 text-sm">Aucune transaction</div>
           ) : transactions.map((tx: any, i: number) => {
             const info = TYPE_LABELS[tx.type] || { label: tx.type, color: "text-white", Icon: DollarSign };
+            const PayIcon = PAYMENT_ICONS[tx.payment_method] || Banknote;
             return (
               <div key={tx.id || i} className="px-5 py-3 flex items-center gap-3 hover:bg-white/[0.02] transition-colors">
                 <div className={`w-8 h-8 rounded flex items-center justify-center ${tx.amount > 0 ? "bg-emerald-500/10" : "bg-red-500/10"}`}>
@@ -124,7 +161,11 @@ export default function CaissePanel() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="text-sm text-white truncate">{tx.label}</div>
-                  <div className="text-xs text-white/30 font-mono">{tx.date}</div>
+                  <div className="text-xs text-white/30 font-mono flex items-center gap-2">
+                    <span>{tx.date}</span>
+                    <PayIcon className="w-3 h-3 text-white/20" />
+                    <span>{tx.payment_method || "Espèces"}</span>
+                  </div>
                 </div>
                 <div className={`font-mono text-sm font-bold ${tx.amount > 0 ? "text-emerald-400" : "text-red-400"}`}>
                   {tx.amount > 0 ? "+" : ""}{tx.amount.toLocaleString()} DH

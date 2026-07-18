@@ -1001,12 +1001,22 @@ const SALES_DATA = [
 function Sales() {
   const [search, setSearch] = useState("");
   const [sales, setSales] = useState<any[]>([]);
+  const [productOptions, setProductOptions] = useState<any[]>([]);
   const [showAdd, setShowAdd] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
   const [editForm, setEditForm] = useState<any>({ id: "", date: "", client: "", product: "", productCode: "", qty: 1, price: 0, total: 0, payment: "Espèces", emp: "" });
   const [form, setForm] = useState<any>({ id: "", date: new Date().toLocaleDateString("fr-FR"), client: "", product: "", productCode: "", qty: 1, price: 0, total: 0, payment: "Espèces", emp: "" });
 
-  useEffect(() => { (async () => { const d = await boutiqueApi("sale-list"); if (d?.sales) setSales(d.sales); })(); }, []);
+  useEffect(() => {
+    (async () => {
+      const [saleData, prodData] = await Promise.all([
+        boutiqueApi("sale-list"),
+        boutiqueApi("product-list"),
+      ]);
+      if (saleData?.sales) setSales(saleData.sales);
+      if (prodData?.products) setProductOptions(prodData.products);
+    })();
+  }, []);
 
   const filtered = sales.filter((s: any) =>
     s.client?.toLowerCase().includes(search.toLowerCase()) || s.product?.toLowerCase().includes(search.toLowerCase())
@@ -1049,7 +1059,7 @@ function Sales() {
           setForm={setForm}
           onClose={() => setShowAdd(false)}
           onSave={addSale}
-          products={PRODUCTS}
+          products={productOptions}
           onQuantityChange={qty => updateSaleQuantity(qty, form, setForm)}
           onPriceChange={price => updateSalePrice(price, form, setForm)}
         />
