@@ -1043,6 +1043,11 @@ function Sales() {
     setShowEdit(false);
   };
 
+  const handleDeleteSale = async (id: string) => {
+    await boutiqueApi("sale-delete", { id });
+    setSales(sales.filter((item: any) => item.id !== id));
+  };
+
   return (
     <div className="p-6 space-y-4">
       <PageHeader
@@ -1100,7 +1105,7 @@ function Sales() {
                 <td className="px-3 py-3 font-mono text-xs font-bold text-emerald-400">{s.total} DH</td>
                 <TD dim>{s.payment}</TD>
                 <TD dim>{s.emp}</TD>
-                <td className="px-3 py-3"><ActionIcons onEdit={() => openEditSale(s)} onDelete={() => setSales(sales.filter(item => item.id !== s.id))} /></td>
+                <td className="px-3 py-3"><ActionIcons onEdit={() => openEditSale(s)} onDelete={() => handleDeleteSale(s.id)} /></td>
               </TR>
             ))}
           </tbody>

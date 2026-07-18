@@ -152,7 +152,23 @@ serve(async (req: Request) => {
         return new Response(JSON.stringify({ sales: data }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
       case "sale-delete": {
+        // Get sale details before deleting
+        const { data: sale } = await supabase.from("sales").select("*").eq("id", body.id).single();
+        if (!sale) throw new Error("Sale not found");
+
+        // Delete the sale record
         await supabase.from("sales").delete().eq("id", body.id);
+
+        // Reverse the caisse (subtract what was added)
+        await supabase.rpc("update_caisse", { amount_change: -sale.total });
+        await supabase.from("caisse_transactions").insert({
+          type: "vente",
+          label: `SUPPRIMÉE Vente ${body.id}: ${sale.total}DH (${sale.product || ""})`,
+          amount: -sale.total,
+          payment_method: sale.payment || "Espèces",
+          date: sale.date || today(),
+        });
+
         return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
 
