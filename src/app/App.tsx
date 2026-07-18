@@ -1212,8 +1212,8 @@ function Purchases() {
           setForm={setEditForm}
           onClose={() => setShowEdit(false)}
           onSave={handleEditPurchase}
-          suppliers={SUPPLIERS_DATA}
-          products={PRODUCTS}
+          suppliers={supplierNames}
+          products={productOptions}
           onQuantityChange={quantity => updatePurchaseQuantity(quantity, editForm, setEditForm)}
           onPriceChange={price => updatePurchasePrice(price, editForm, setEditForm)}
         />
