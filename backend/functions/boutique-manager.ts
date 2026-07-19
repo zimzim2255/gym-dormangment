@@ -346,6 +346,48 @@ serve(async (req: Request) => {
         return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
 
+      // ─── Cheques ───────────────────────────────────────────────────
+      case "cheque-list": {
+        const { data } = await supabase.from("cheques").select("*").order("created_at", { ascending: false });
+        return new Response(JSON.stringify({ cheques: data || [] }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+      case "cheque-create": {
+        const remaining = body.amount - (body.usedAmount || 0);
+        const { data, error } = await supabase.from("cheques").insert({
+          cheque_id: body.chequeId,
+          member_id: body.memberId,
+          member_name: body.memberName,
+          giver: body.giver,
+          amount: body.amount || 0,
+          used_amount: body.usedAmount || 0,
+          remaining,
+          usage_percent: body.usagePercent || 100,
+          date_emission: body.dateEmission,
+          date_echeance: body.dateEcheance,
+          date_execution: body.dateExecution || null,
+          photo: body.photo || "",
+          status: body.status || "En_attente",
+        }).select().single();
+        if (error) throw error;
+        return new Response(JSON.stringify({ success: true, cheque: data }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+      case "cheque-update": {
+        const { data, error } = await supabase.from("cheques").update({
+          cheque_id: body.chequeId, member_id: body.memberId, member_name: body.memberName,
+          giver: body.giver, amount: body.amount, used_amount: body.usedAmount,
+          remaining: body.amount - (body.usedAmount || 0),
+          usage_percent: body.usagePercent, date_emission: body.dateEmission,
+          date_echeance: body.dateEcheance, date_execution: body.dateExecution,
+          photo: body.photo, status: body.status,
+        }).eq("id", body.id).select().single();
+        if (error) throw error;
+        return new Response(JSON.stringify({ success: true, cheque: data }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+      case "cheque-delete": {
+        await supabase.from("cheques").delete().eq("id", body.id);
+        return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+
       // ─── Caisse ────────────────────────────────────────────────────
       case "caisse-get": {
         const { data } = await supabase.from("caisse").select("*").limit(1).single();

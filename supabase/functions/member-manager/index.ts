@@ -15,7 +15,10 @@ const corsHeaders = {
 };
 
 serve(async (req: Request) => {
-  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  // Handle CORS preflight
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
 
   const supabase = createClient(
     Deno.env.get("SUPABASE_URL") ?? "",
