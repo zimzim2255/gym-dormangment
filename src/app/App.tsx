@@ -1698,14 +1698,31 @@ function Expenses() {
   const [showEdit, setShowEdit] = useState(false);
   const [form, setForm] = useState<any>({ cat: "", desc: "", amount: 0, date: new Date().toLocaleDateString("fr-FR"), resp: "", note: "" });
   const [editForm, setEditForm] = useState<any>(form);
+  const [suppliers, setSuppliers] = useState<any[]>([]);
+  const [staff, setStaff] = useState<any[]>([]);
+  const [members, setMembers] = useState<{ id: string; name: string }[]>([]);
 
-  useEffect(() => { (async () => { const d = await boutiqueApi("expense-list"); if (d?.expenses) setExpenses(d.expenses); })(); }, []);
+  useEffect(() => {
+    (async () => {
+      const [expData, suppData, staffData, memberData] = await Promise.all([
+        boutiqueApi("expense-list"),
+        boutiqueApi("supplier-list"),
+        boutiqueApi("staff-list"),
+        api("list"),
+      ]);
+      if (expData?.expenses) setExpenses(expData.expenses);
+      if (suppData?.suppliers) setSuppliers(suppData.suppliers);
+      if (staffData?.staff) setStaff(staffData.staff);
+      if (memberData?.members) setMembers(memberData.members.map((m: any) => ({ id: m.id, name: m.name })));
+    })();
+  }, []);
 
   const filtered = expenses.filter((e: any) => e.cat?.toLowerCase().includes(search.toLowerCase()) || e.description?.toLowerCase().includes(search.toLowerCase()));
   const total = expenses.reduce((sum: number, e: any) => sum + (e.amount || 0), 0);
 
-  const handleAdd = async () => {
-    const r = await boutiqueApi("expense-create", form);
+  const handleAdd = async (extraData?: any) => {
+    const payload = { ...form, ...extraData };
+    const r = await boutiqueApi("expense-create", payload);
     if (r?.expense) setExpenses([r.expense, ...expenses]);
     setForm({ cat: "", desc: "", amount: 0, date: new Date().toLocaleDateString("fr-FR"), resp: "", note: "" });
     setShowAdd(false);
@@ -1739,7 +1756,7 @@ function Expenses() {
         }
       />
 
-      {showAdd && <ExpenseAddCard form={form} setForm={setForm} onClose={() => setShowAdd(false)} onSave={handleAdd} />}
+      {showAdd && <ExpenseAddCard form={form} setForm={setForm} onClose={() => setShowAdd(false)} onSave={handleAdd} suppliers={suppliers} staff={staff} members={members} />}
       {showEdit && <ExpenseEditCard form={editForm} setForm={setEditForm} onClose={() => setShowEdit(false)} onSave={handleEdit} />}
 
       <div className="bg-card border border-white/5 rounded-lg overflow-x-auto">
