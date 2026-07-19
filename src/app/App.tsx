@@ -29,12 +29,13 @@ import StaffEditCard from "./components/erp/StaffEditCard";
 import ExpenseAddCard from "./components/erp/ExpenseAddCard";
 import AccessControlPanel from "./components/door/AccessControlPanel";
 import CaissePanel from "./components/door/CaissePanel";
+import ChequePanel from "./components/door/ChequePanel";
 import { getAccessLogs } from "./services/doorService";
 import ExpenseEditCard from "./components/erp/ExpenseEditCard";
 
 type ViewId =
   | "dashboard" | "members" | "subscriptions" | "access" | "history"
-  | "stock" | "sales" | "purchases" | "suppliers" | "staff" | "expenses" | "reports" | "settings" | "caisse";
+  | "stock" | "sales" | "purchases" | "suppliers" | "staff" | "expenses" | "reports" | "settings" | "caisse" | "cheques";
 
 // ─── mock data ────────────────────────────────────────────────────────────────
 
@@ -1646,6 +1647,7 @@ const NAV: NavItem[] = [
   { id: "suppliers", label: "Fournisseurs", Icon: Truck, group: "Boutique" },
   { id: "staff", label: "Personnel", Icon: UserCheck, group: "RH & Finance" },
   { id: "caisse", label: "Caisse", Icon: DollarSign, group: "RH & Finance" },
+  { id: "cheques", label: "Chèques", Icon: CreditCard, group: "RH & Finance" },
   { id: "expenses", label: "Dépenses", Icon: Receipt, group: "RH & Finance" },
   { id: "reports", label: "Rapports", Icon: BarChart2, group: "RH & Finance" },
   { id: "settings", label: "Paramètres", Icon: Settings },
@@ -1764,6 +1766,7 @@ export default function App() {
       case "suppliers": return <Suppliers />;
       case "staff": return <Staff />;
       case "caisse": return <CaissePanel />;
+      case "cheques": return <ChequePanel />;
       case "expenses": return <Expenses />;
       case "reports": return <Reports />;
       case "settings": return <SettingsView />;
