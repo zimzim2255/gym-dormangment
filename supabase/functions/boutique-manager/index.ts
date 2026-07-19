@@ -365,6 +365,21 @@ serve(async (req: Request) => {
           status: body.status || "En_attente",
         }).select().single();
         if (error) throw error;
+
+        // Add cheque amount to caisse
+        const amount = body.amount || 0;
+        if (amount > 0) {
+          await supabase.rpc("update_caisse", { amount_change: amount });
+          await supabase.from("caisse_transactions").insert({
+            type: "vente",
+            label: `Chèque ${body.chequeId} - ${body.memberName || ""}`,
+            amount,
+            payment_method: "Chèque",
+            reference: body.chequeId,
+            date: body.date || today(),
+          });
+        }
+
         return new Response(JSON.stringify({ success: true, cheque: data }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
       case "cheque-update": {
