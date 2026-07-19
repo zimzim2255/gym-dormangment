@@ -1,8 +1,9 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 //  Cloudinary Image Upload - Edge Function
 //  ───────────────────────────────────────────────────────────────────────────────
-//  Handles signed uploads to Cloudinary. The API secret stays server-side.
-//  No upload preset required - uses SHA-1 signature for authentication.
+//  Uses unsigned upload with an upload preset (no signature needed).
+//  Create an upload preset in Cloudinary Dashboard → Settings → Upload
+//  Set: Signing Mode = Unsigned, Folder = gym-web-application
 // ═══════════════════════════════════════════════════════════════════════════════
 
 import { serve } from "https://deno.land/std@0.208.0/http/server.ts";
@@ -19,7 +20,6 @@ serve(async (req: Request) => {
   try {
     const formData = await req.formData();
     const file = formData.get("file") as File;
-    const publicId = formData.get("public_id") as string | null;
 
     if (!file) {
       return new Response(JSON.stringify({ error: "Missing file" }), {
@@ -29,27 +29,12 @@ serve(async (req: Request) => {
     }
 
     const cloudName = Deno.env.get("CLOUDINARY_CLOUD_NAME") || "tzgwtitg";
-    const apiKey = Deno.env.get("CLOUDINARY_API_KEY") || "797683664947181";
-    const apiSecret = Deno.env.get("CLOUDINARY_API_SECRET") || "cVzkfUqkVoH2FnBZR8sdsfuZ4kE";
-    const folder = Deno.env.get("CLOUDINARY_UPLOAD_FOLDER") || "gym-web-application";
-    const timestamp = Math.round(Date.now() / 1000);
+    const uploadPreset = Deno.env.get("CLOUDINARY_UPLOAD_PRESET") || "gym_unsigned";
 
-    // Build signature
-    let toSign = `folder=${folder}&timestamp=${timestamp}`;
-    if (publicId) toSign += `&public_id=${publicId}`;
-    toSign += apiSecret;
-
-    const signature = await crypto.subtle.digest("SHA-1", new TextEncoder().encode(toSign))
-      .then(buf => Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, "0")).join(""));
-
-    // Build Cloudinary upload form
+    // Build Cloudinary upload form (unsigned - no signature needed)
     const cloudForm = new FormData();
     cloudForm.append("file", file);
-    cloudForm.append("api_key", apiKey);
-    cloudForm.append("timestamp", timestamp.toString());
-    cloudForm.append("signature", signature);
-    cloudForm.append("folder", folder);
-    if (publicId) cloudForm.append("public_id", publicId);
+    cloudForm.append("upload_preset", uploadPreset);
 
     const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
       method: "POST",

@@ -56,8 +56,8 @@ export default function ChequePanel() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [showAdd, setShowAdd] = useState(false);
   const [form, setForm] = useState({
-    chequeId: "", memberId: "", memberName: "", giver: "", amount: 0,
-    dateEmission: "", dateEcheance: "", dateExecution: "", photo: "", status: "En_attente",
+    chequeId: "", memberId: "", memberName: "", amount: 0,
+    date: "", dateEcheance: "", photo: "", status: "En_attente",
   });
 
   const fetchData = useCallback(async () => {
@@ -75,16 +75,16 @@ export default function ChequePanel() {
   const handleCreate = async () => {
     const r = await boutiqueApi("cheque-create", form);
     if (r?.cheque) setCheques([r.cheque, ...cheques]);
-    setForm({ chequeId: "", memberId: "", memberName: "", giver: "", amount: 0, dateEmission: "", dateEcheance: "", dateExecution: "", photo: "", status: "En_attente" });
+    setForm({ chequeId: "", memberId: "", memberName: "", amount: 0, date: "", dateEcheance: "", photo: "", status: "En_attente" });
     setShowAdd(false);
   };
 
   const filtered = cheques.filter((c: any) => {
-    const label = `${c.member_name || ""} ${c.giver || ""} ${c.cheque_id || ""}`.toLowerCase();
+    const label = `${c.member_name || ""} ${c.cheque_id || ""}`.toLowerCase();
     const matchesSearch = label.includes(search.toLowerCase());
     const matchesStatus = statusFilter === "all" || c.status === statusFilter;
-    const matchesFrom = !dateFrom || (c.date_emission || "").localeCompare(dateFrom) >= 0;
-    const matchesTo = !dateTo || (c.date_emission || "").localeCompare(dateTo) <= 0;
+    const matchesFrom = !dateFrom || (c.date || "").localeCompare(dateFrom) >= 0;
+    const matchesTo = !dateTo || (c.date || "").localeCompare(dateTo) <= 0;
     return matchesSearch && matchesStatus && matchesFrom && matchesTo;
   });
 
@@ -180,12 +180,11 @@ export default function ChequePanel() {
             <tr className="border-b border-white/5">
               <th className="px-3 py-3 text-left text-xs font-semibold text-white/30 uppercase tracking-wider">N° Chèque</th>
               <th className="px-3 py-3 text-left text-xs font-semibold text-white/30 uppercase tracking-wider">Client</th>
-              <th className="px-3 py-3 text-left text-xs font-semibold text-white/30 uppercase tracking-wider">Donneur</th>
               <th className="px-3 py-3 text-left text-xs font-semibold text-white/30 uppercase tracking-wider">Montant</th>
               <th className="px-3 py-3 text-left text-xs font-semibold text-white/30 uppercase tracking-wider">Utilisé</th>
               <th className="px-3 py-3 text-left text-xs font-semibold text-white/30 uppercase tracking-wider">Reste</th>
-              <th className="px-3 py-3 text-left text-xs font-semibold text-white/30 uppercase tracking-wider">Date éch.</th>
-              <th className="px-3 py-3 text-left text-xs font-semibold text-white/30 uppercase tracking-wider">Date exéc.</th>
+              <th className="px-3 py-3 text-left text-xs font-semibold text-white/30 uppercase tracking-wider">Date</th>
+              <th className="px-3 py-3 text-left text-xs font-semibold text-white/30 uppercase tracking-wider">Échéance</th>
               <th className="px-3 py-3 text-left text-xs font-semibold text-white/30 uppercase tracking-wider">Statut</th>
               <th className="px-3 py-3 text-left text-xs font-semibold text-white/30 uppercase tracking-wider">Photo</th>
               <th className="px-3 py-3 text-left text-xs font-semibold text-white/30 uppercase tracking-wider">Actions</th>
@@ -200,12 +199,11 @@ export default function ChequePanel() {
               <tr key={c.id || i} className="border-b border-white/5 hover:bg-white/[0.03] transition-colors">
                 <td className="px-3 py-3 font-mono text-xs text-[#f04e23]">{c.cheque_id}</td>
                 <td className="px-3 py-3 text-sm text-white">{c.member_name}</td>
-                <td className="px-3 py-3 text-sm text-white/60">{c.giver}</td>
                 <td className="px-3 py-3 font-mono text-sm font-bold text-white">{c.amount?.toLocaleString()} DH</td>
                 <td className="px-3 py-3 font-mono text-sm text-emerald-400">{c.used_amount?.toLocaleString()} DH</td>
                 <td className="px-3 py-3 font-mono text-sm text-amber-400">{c.remaining?.toLocaleString()} DH</td>
+                <td className="px-3 py-3 font-mono text-xs text-white/50">{c.date}</td>
                 <td className="px-3 py-3 font-mono text-xs text-white/50">{c.date_echeance}</td>
-                <td className="px-3 py-3 font-mono text-xs text-white/50">{c.date_execution || "—"}</td>
                 <td className="px-3 py-3"><Badge s={c.status} /></td>
                 <td className="px-3 py-3">
                   {c.photo ? (

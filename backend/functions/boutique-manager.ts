@@ -352,19 +352,15 @@ serve(async (req: Request) => {
         return new Response(JSON.stringify({ cheques: data || [] }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
       case "cheque-create": {
-        const remaining = body.amount - (body.usedAmount || 0);
         const { data, error } = await supabase.from("cheques").insert({
           cheque_id: body.chequeId,
           member_id: body.memberId,
           member_name: body.memberName,
-          giver: body.giver,
           amount: body.amount || 0,
-          used_amount: body.usedAmount || 0,
-          remaining,
-          usage_percent: body.usagePercent || 100,
-          date_emission: body.dateEmission,
+          used_amount: 0,
+          remaining: body.amount || 0,
+          date: body.date,
           date_echeance: body.dateEcheance,
-          date_execution: body.dateExecution || null,
           photo: body.photo || "",
           status: body.status || "En_attente",
         }).select().single();

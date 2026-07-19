@@ -8,11 +8,9 @@ type ChequeForm = {
   chequeId: string;
   memberId: string;
   memberName: string;
-  giver: string;
   amount: number;
-  dateEmission: string;
+  date: string;
   dateEcheance: string;
-  dateExecution: string;
   photo: string;
   status: string;
 };
@@ -37,7 +35,7 @@ export default function ChequeAddCard({ form, setForm, onClose, onSave, members 
   );
 
   const selectClient = (member: MemberOption) => {
-    setForm({ ...form, memberId: member.id, memberName: member.name, giver: member.name });
+    setForm({ ...form, memberId: member.id, memberName: member.name });
     setSearch(member.name);
     setShowSuggestions(false);
   };
@@ -47,7 +45,7 @@ export default function ChequeAddCard({ form, setForm, onClose, onSave, members 
     if (!file) return;
     setUploading(true);
     try {
-      const url = await uploadMemberPhoto(file, `cheque_${form.chequeId || Date.now()}`);
+      const url = await uploadMemberPhoto(file);
       setForm({ ...form, photo: url });
     } catch { /* silent */ }
     finally { setUploading(false); }
@@ -100,11 +98,9 @@ export default function ChequeAddCard({ form, setForm, onClose, onSave, members 
           )}
         </div>
 
-        <InputField label="Donneur" icon={User} value={form.giver} onChange={v => setForm({ ...form, giver: v as string })} placeholder="Nom du donneur" required />
         <InputField label="Montant (DH)" icon={DollarSign} type="number" value={form.amount} onChange={v => setForm({ ...form, amount: v as number })} placeholder="0" />
-        <InputField label="Date d'émission" icon={Calendar} value={form.dateEmission} onChange={v => setForm({ ...form, dateEmission: v as string })} placeholder="jj/mm/aaaa" required />
+        <InputField label="Date du chèque" icon={Calendar} value={form.date} onChange={v => setForm({ ...form, date: v as string })} placeholder="jj/mm/aaaa" required />
         <InputField label="Date d'échéance" icon={Calendar} value={form.dateEcheance} onChange={v => setForm({ ...form, dateEcheance: v as string })} placeholder="jj/mm/aaaa" required />
-        <InputField label="Date d'exécution" icon={Calendar} value={form.dateExecution} onChange={v => setForm({ ...form, dateExecution: v as string })} placeholder="jj/mm/aaaa" />
       </div>
 
       {/* Photo Upload */}
