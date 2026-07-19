@@ -371,6 +371,21 @@ serve(async (req: Request) => {
           amount: -amount, payment_method: paymentMethod, date: body.date || today(),
         });
 
+        // If expense is for a supplier, deduct from their balance (reduce what we owe them)
+        if (body.expense_type === "fournisseur" && body.supplier_name) {
+          const { data: supp, error: suppErr } = await supabase
+            .from("suppliers")
+            .select("id, balance")
+            .eq("name", body.supplier_name)
+            .single();
+          if (supp && !suppErr) {
+            const newBalance = Math.max(0, (supp.balance || 0) - amount);
+            await supabase.from("suppliers").update({ balance: newBalance }).eq("id", supp.id);
+          } else {
+            console.error("Supplier not found for balance update:", body.supplier_name, suppErr);
+          }
+        }
+
         // Deduct from cheque if payment method is Chèque
         if (paymentMethod === "Chèque" && body.chequeId) {
           const { data: cheque } = await supabase.from("cheques").select("*").eq("cheque_id", body.chequeId).single();
