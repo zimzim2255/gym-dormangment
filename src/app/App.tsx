@@ -1192,12 +1192,13 @@ function Purchases() {
   const onPriceChange = (price: number) => setForm((prev: any) => ({ ...prev, price, total: price * prev.quantity }));
 
   const addPurchase = async () => {
-    const r = await boutiqueApi("purchase-create", { ...form, supplierCompany: form.supplier });
+    const r = await boutiqueApi("purchase-create", { ...form, supplierCompany: form.supplier, chequeId: selectedCheque?.cheque_id });
     if (r?.purchase) {
       const p = r.purchase;
       setPurchases([{ ...p, supplier: p.supplier_name || form.supplier }, ...purchases]);
     }
     setForm({ id: "", supplier: "", supplierCompany: "", product: "", productCode: "", quantity: 1, price: 0, total: 0, date: new Date().toLocaleDateString("fr-FR"), payment: "Espèces" });
+    setSelectedCheque(null);
     setShowAdd(false);
   };
 

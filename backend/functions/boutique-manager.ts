@@ -111,7 +111,7 @@ serve(async (req: Request) => {
         await supabase.rpc("update_caisse", { amount_change: total });
         await supabase.from("caisse_transactions").insert({
           type: "vente", label: `Vente ${id} - ${body.product || ""}`,
-          amount: total, payment_method: paymentMethod, reference: id, date: body.date || today(),
+          amount: total, reference: id, date: body.date || today(),
         });
 
         // Deduct from cheque if payment method is Chèque
@@ -217,16 +217,28 @@ serve(async (req: Request) => {
           }
         }
 
-        // Increase supplier balance
-        if (body.supplier && body.supplierCompany) {
-          await supabase.rpc("update_supplier_balance", {
-            p_name: body.supplier, p_company: body.supplierCompany,
-            amount_change: total,
-          });
+        // Increase supplier balance (non-blocking - must not prevent caisse update)
+        try {
+          if (body.supplier) {
+            await supabase.rpc("update_supplier_balance_by_name", {
+              p_name: body.supplier,
+              amount_change: total,
+            });
+          }
+        } catch (e) {
+          console.error("Failed to update supplier balance:", e);
         }
 
+        // Decrease caisse
+        const paymentMethod = body.payment || "Espèces";
+        await supabase.rpc("update_caisse", { amount_change: -total });
+        await supabase.from("caisse_transactions").insert({
+          type: "achat", label: `Achat ${id} - ${body.product || ""}`,
+          amount: -total, reference: id, payment_method: paymentMethod, date: body.date || today(),
+        });
+
         // Deduct from cheque if payment method is Chèque
-        if ((body.payment || "Espèces") === "Chèque" && body.chequeId) {
+        if (paymentMethod === "Chèque" && body.chequeId) {
           const { data: cheque } = await supabase.from("cheques").select("*").eq("cheque_id", body.chequeId).single();
           if (cheque) {
             if ((cheque.remaining || 0) < total) {
