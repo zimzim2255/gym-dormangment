@@ -1034,9 +1034,10 @@ function Sales() {
   const onPriceChange = (price: number) => setForm((prev: any) => ({ ...prev, price, total: price * prev.qty }));
 
   const addSale = async () => {
-    const r = await boutiqueApi("sale-create", form);
+    const r = await boutiqueApi("sale-create", { ...form, chequeId: selectedCheque?.cheque_id });
     if (r?.sale) setSales([r.sale, ...sales]);
     setForm({ id: "", date: new Date().toLocaleDateString("fr-FR"), client: "", product: "", productCode: "", qty: 1, price: 0, total: 0, payment: "Espèces", emp: "" });
+    setSelectedCheque(null);
     setShowAdd(false);
   };
 

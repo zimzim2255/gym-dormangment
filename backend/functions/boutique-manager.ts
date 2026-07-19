@@ -114,6 +114,19 @@ serve(async (req: Request) => {
           amount: total, payment_method: paymentMethod, reference: id, date: body.date || today(),
         });
 
+        // Deduct from cheque if payment method is Chèque
+        if (paymentMethod === "Chèque" && body.chequeId) {
+          const { data: cheque } = await supabase.from("cheques").select("*").eq("cheque_id", body.chequeId).single();
+          if (cheque) {
+            const newUsed = (cheque.used_amount || 0) + total;
+            const newRemaining = Math.max(0, (cheque.amount || 0) - newUsed);
+            const newStatus = newRemaining <= 0 ? "Encaissé" : "Partiel";
+            await supabase.from("cheques").update({
+              used_amount: newUsed, remaining: newRemaining, status: newStatus,
+            }).eq("cheque_id", body.chequeId);
+          }
+        }
+
         return new Response(JSON.stringify({ success: true, sale }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
       case "sale-update": {
@@ -212,12 +225,23 @@ serve(async (req: Request) => {
           });
         }
 
-        // Decrease caisse
-        await supabase.rpc("update_caisse", { amount_change: -total });
-        await supabase.from("caisse_transactions").insert({
-          type: "achat", label: `Achat ${id} - ${body.product || ""}`,
-          amount: -total, reference: id, date: body.date || today(),
-        });
+        // Deduct from cheque if payment method is Chèque
+        if ((body.payment || "Espèces") === "Chèque" && body.chequeId) {
+          const { data: cheque } = await supabase.from("cheques").select("*").eq("cheque_id", body.chequeId).single();
+          if (cheque) {
+            if ((cheque.remaining || 0) < total) {
+              return new Response(JSON.stringify({ error: "Solde du chèque insuffisant" }), {
+                status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+              });
+            }
+            const newUsed = (cheque.used_amount || 0) + total;
+            const newRemaining = Math.max(0, (cheque.amount || 0) - newUsed);
+            const newStatus = newRemaining <= 0 ? "Encaissé" : "Partiel";
+            await supabase.from("cheques").update({
+              used_amount: newUsed, remaining: newRemaining, status: newStatus,
+            }).eq("cheque_id", body.chequeId);
+          }
+        }
 
         return new Response(JSON.stringify({ success: true, purchase }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
