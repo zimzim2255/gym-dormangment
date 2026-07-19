@@ -1003,19 +1003,26 @@ function Sales() {
   const [search, setSearch] = useState("");
   const [sales, setSales] = useState<any[]>([]);
   const [productOptions, setProductOptions] = useState<any[]>([]);
+  const [members, setMembers] = useState<{ id: string; name: string }[]>([]);
   const [showAdd, setShowAdd] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
   const [editForm, setEditForm] = useState<any>({ id: "", date: "", client: "", product: "", productCode: "", qty: 1, price: 0, total: 0, payment: "Espèces", emp: "" });
   const [form, setForm] = useState<any>({ id: "", date: new Date().toLocaleDateString("fr-FR"), client: "", product: "", productCode: "", qty: 1, price: 0, total: 0, payment: "Espèces", emp: "" });
+  // Cheque state
+  const [selectedCheque, setSelectedCheque] = useState<any>(null);
+  const [showChequeAdd, setShowChequeAdd] = useState(false);
+  const [chequeForm, setChequeForm] = useState({ chequeId: "", memberId: "", memberName: "", amount: 0, date: "", dateEcheance: "", photo: "", status: "En_attente" });
 
   useEffect(() => {
     (async () => {
-      const [saleData, prodData] = await Promise.all([
+      const [saleData, prodData, memberData] = await Promise.all([
         boutiqueApi("sale-list"),
         boutiqueApi("product-list"),
+        api("list"),
       ]);
       if (saleData?.sales) setSales(saleData.sales);
       if (prodData?.products) setProductOptions(prodData.products);
+      if (memberData?.members) setMembers(memberData.members.map((m: any) => ({ id: m.id, name: m.name })));
     })();
   }, []);
 
@@ -1073,6 +1080,21 @@ function Sales() {
           products={productOptions}
           onQuantityChange={qty => updateSaleQuantity(qty, form, setForm)}
           onPriceChange={price => updateSalePrice(price, form, setForm)}
+          chequeId={selectedCheque?.cheque_id}
+          onChequeSelect={setSelectedCheque}
+          chequeForm={chequeForm}
+          setChequeForm={setChequeForm}
+          showChequeAdd={showChequeAdd}
+          onOpenChequeAdd={() => setShowChequeAdd(true)}
+          onCloseChequeAdd={() => setShowChequeAdd(false)}
+          onSaveCheque={async () => {
+            const r = await boutiqueApi("cheque-create", chequeForm);
+            if (r?.cheque) {
+              setSelectedCheque(r.cheque);
+              setShowChequeAdd(false);
+            }
+          }}
+          members={members}
         />
       )}
       {showEdit && (
@@ -1135,21 +1157,28 @@ function Purchases() {
   const [purchases, setPurchases] = useState<any[]>([]);
   const [supplierNames, setSupplierNames] = useState<string[]>([]);
   const [productOptions, setProductOptions] = useState<any[]>([]);
+  const [members, setMembers] = useState<{ id: string; name: string }[]>([]);
   const [showAdd, setShowAdd] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
   const [editForm, setEditForm] = useState<any>({ id: "", supplier: "", supplierCompany: "", product: "", productCode: "", quantity: 1, price: 0, total: 0, date: "", payment: "Espèces" });
   const [form, setForm] = useState<any>({ id: "", supplier: "", supplierCompany: "", product: "", productCode: "", quantity: 1, price: 0, total: 0, date: new Date().toLocaleDateString("fr-FR"), payment: "Espèces" });
+  // Cheque state
+  const [selectedCheque, setSelectedCheque] = useState<any>(null);
+  const [showChequeAdd, setShowChequeAdd] = useState(false);
+  const [chequeForm, setChequeForm] = useState({ chequeId: "", memberId: "", memberName: "", amount: 0, date: "", dateEcheance: "", photo: "", status: "En_attente" });
 
   useEffect(() => {
     (async () => {
-      const [purData, suppData, prodData] = await Promise.all([
+      const [purData, suppData, prodData, memberData] = await Promise.all([
         boutiqueApi("purchase-list"),
         boutiqueApi("supplier-list"),
         boutiqueApi("product-list"),
+        api("list"),
       ]);
       if (purData?.purchases) setPurchases(purData.purchases);
       if (suppData?.suppliers) setSupplierNames(suppData.suppliers.map((s: any) => s.name));
       if (prodData?.products) setProductOptions(prodData.products);
+      if (memberData?.members) setMembers(memberData.members.map((m: any) => ({ id: m.id, name: m.name })));
     })();
   }, []);
 
@@ -1205,6 +1234,21 @@ function Purchases() {
           products={productOptions}
           onQuantityChange={quantity => updatePurchaseQuantity(quantity, form, setForm)}
           onPriceChange={price => updatePurchasePrice(price, form, setForm)}
+          chequeId={selectedCheque?.cheque_id}
+          onChequeSelect={setSelectedCheque}
+          chequeForm={chequeForm}
+          setChequeForm={setChequeForm}
+          showChequeAdd={showChequeAdd}
+          onOpenChequeAdd={() => setShowChequeAdd(true)}
+          onCloseChequeAdd={() => setShowChequeAdd(false)}
+          onSaveCheque={async () => {
+            const r = await boutiqueApi("cheque-create", chequeForm);
+            if (r?.cheque) {
+              setSelectedCheque(r.cheque);
+              setShowChequeAdd(false);
+            }
+          }}
+          members={members}
         />
       )}
       {showEdit && (

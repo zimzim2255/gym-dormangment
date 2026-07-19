@@ -1,7 +1,9 @@
-import { ShoppingCart, Truck, Package, DollarSign, CreditCard, Calendar, Search } from "lucide-react";
+import { ShoppingCart, Truck, Package, DollarSign, CreditCard, Calendar } from "lucide-react";
 import { Dispatch, SetStateAction, useState } from "react";
 import ModalCard from "../ui/ModalCard";
 import { InputField, SelectField, FormActions } from "../ui/FormField";
+import ChequeSelector from "../door/ChequeSelector";
+import ChequeAddCard from "../door/ChequeAddCard";
 
 type PurchaseForm = { id: string; supplier: string; supplierCompany: string; product: string; productCode: string; quantity: number; price: number; total: number; date: string; payment: string; };
 interface ProductOption { code: string; name: string; }
@@ -9,9 +11,18 @@ interface PurchaseAddCardProps {
   form: PurchaseForm; setForm: Dispatch<SetStateAction<PurchaseForm>>;
   onClose: () => void; onSave: () => void; suppliers: string[]; products: ProductOption[];
   onQuantityChange: (value: number) => void; onPriceChange: (value: number) => void;
+  chequeId?: string;
+  onChequeSelect?: (cheque: any) => void;
+  chequeForm?: any;
+  setChequeForm?: any;
+  showChequeAdd?: boolean;
+  onOpenChequeAdd?: () => void;
+  onCloseChequeAdd?: () => void;
+  onSaveCheque?: () => void;
+  members?: { id: string; name: string }[];
 }
 
-export default function PurchaseAddCard({ form, setForm, onClose, onSave, suppliers, products, onQuantityChange, onPriceChange }: PurchaseAddCardProps) {
+export default function PurchaseAddCard({ form, setForm, onClose, onSave, suppliers, products, onQuantityChange, onPriceChange, chequeId, onChequeSelect, chequeForm, setChequeForm, showChequeAdd, onOpenChequeAdd, onCloseChequeAdd, onSaveCheque, members }: PurchaseAddCardProps) {
   const [search, setSearch] = useState("");
   const [showSuggestions, setShowSuggestions] = useState(false);
 
@@ -79,8 +90,18 @@ export default function PurchaseAddCard({ form, setForm, onClose, onSave, suppli
           { value: "Chèque", label: "Chèque" },
           { value: "Virement", label: "Virement" },
         ]} />
+        {form.payment === "Chèque" && (
+          <div className="col-span-2">
+            <ChequeSelector selectedChequeId={chequeId || ""} onSelect={onChequeSelect || (() => {})} onCreateNew={onOpenChequeAdd || (() => {})} />
+          </div>
+        )}
         <InputField label="Date" icon={Calendar} value={form.date} onChange={v => setForm({ ...form, date: v as string })} placeholder="jj/mm/aaaa" />
       </div>
+
+      {showChequeAdd && chequeForm && setChequeForm && members && (
+        <ChequeAddCard form={chequeForm} setForm={setChequeForm} onClose={onCloseChequeAdd || (() => {})} onSave={onSaveCheque || (() => {})} members={members} />
+      )}
+
       <FormActions onCancel={onClose} onSave={onSave} />
     </ModalCard>
   );
