@@ -35,7 +35,7 @@ import ExpenseEditCard from "./components/erp/ExpenseEditCard";
 
 type ViewId =
   | "dashboard" | "members" | "subscriptions" | "access" | "history"
-  | "stock" | "sales" | "purchases" | "suppliers" | "staff" | "expenses" | "reports" | "settings" | "caisse" | "cheques";
+  | "stock" | "sales" | "purchases" | "suppliers" | "staff" | "expenses" | "reports" | "settings" | "caisse" | "cheques" | "attendance";
 
 // ─── mock data ────────────────────────────────────────────────────────────────
 
@@ -1383,8 +1383,25 @@ function Staff() {
   const [showEdit, setShowEdit] = useState(false);
   const [form, setForm] = useState<any>({ name: "", phone: "", cin: "", role: "", salary: 0, hired: "", status: "Présent" });
   const [editForm, setEditForm] = useState<any>(form);
+  // Attendance state
+  const [attendanceDate, setAttendanceDate] = useState(new Date().toLocaleDateString("fr-FR"));
+  const [attendance, setAttendance] = useState<Record<string, string>>({});
+  const [attendanceSaving, setAttendanceSaving] = useState(false);
+  const [attendanceSaved, setAttendanceSaved] = useState(false);
 
-  useEffect(() => { (async () => { const d = await boutiqueApi("staff-list"); if (d?.staff) setStaff(d.staff); })(); }, []);
+  useEffect(() => { (async () => { const d = await boutiqueApi("staff-list"); if (d?.staff) { setStaff(d.staff); } })(); }, []);
+
+  // Load attendance for the selected date
+  useEffect(() => {
+    (async () => {
+      const d = await boutiqueApi("staff-attendance-get", { date: attendanceDate });
+      if (d?.attendance) {
+        const map: Record<string, string> = {};
+        d.attendance.forEach((a: any) => { map[a.staff_cin] = a.status; });
+        setAttendance(map);
+      }
+    })();
+  }, [attendanceDate]);
 
   const filtered = staff.filter((s: any) => s.name?.toLowerCase().includes(search.toLowerCase()));
 
@@ -1408,13 +1425,38 @@ function Staff() {
     setStaff(staff.filter((s: any) => s.cin !== cin));
   };
 
+  const toggleAttendance = (cin: string) => {
+    setAttendance(prev => ({
+      ...prev,
+      [cin]: prev[cin] === "Présent" ? "Absent" : "Présent",
+    }));
+    setAttendanceSaved(false);
+  };
+
+  const saveAttendance = async () => {
+    setAttendanceSaving(true);
+    const records = staff.map(s => ({
+      staff_cin: s.cin,
+      status: attendance[s.cin] || "Présent",
+    }));
+    await boutiqueApi("staff-attendance-save", { date: attendanceDate, records });
+    setAttendanceSaving(false);
+    setAttendanceSaved(true);
+    setTimeout(() => setAttendanceSaved(false), 3000);
+  };
+
+  // Count present/absent
+  const presentCount = staff.filter(s => (attendance[s.cin] || "Présent") === "Présent").length;
+  const absentCount = staff.length - presentCount;
+
   return (
-    <div className="p-6">
+    <div className="p-6 space-y-4">
       <PageHeader
         title="Personnel"
         count={staff.length}
         actions={
           <>
+            <SearchInput placeholder="Rechercher…" value={search} onChange={setSearch} />
             <Btn onClick={() => downloadCSV(staff, "personnel")}><Download className="w-3.5 h-3.5" /> Export</Btn>
             <Btn variant="primary" onClick={() => setShowAdd(prev => !prev)}><Plus className="w-3.5 h-3.5" /> Ajouter employé</Btn>
           </>
@@ -1424,31 +1466,143 @@ function Staff() {
       {showAdd && <StaffAddCard form={form} setForm={setForm} onClose={() => setShowAdd(false)} onSave={handleAdd} />}
       {showEdit && <StaffEditCard form={editForm} setForm={setEditForm} onClose={() => setShowEdit(false)} onSave={handleEdit} />}
 
+      {/* ─── Attendance Bar ──────────────────────────────────────── */}
+      <div className="flex items-center justify-between flex-wrap gap-3 bg-card border border-white/5 rounded-lg px-5 py-3">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded bg-emerald-500/10 flex items-center justify-center">
+            <UserCheck className="w-4 h-4 text-emerald-400" />
+          </div>
+          <div>
+            <div className="text-sm font-semibold text-white">Pointage du {attendanceDate}</div>
+            <div className="text-xs text-white/30 font-mono">
+              {presentCount} présent{ presentCount > 1 ? "s" : "" } · {absentCount} absent{ absentCount > 1 ? "s" : "" }
+            </div>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <input
+            type="text"
+            value={attendanceDate}
+            onChange={e => setAttendanceDate(e.target.value)}
+            placeholder="jj/mm/aaaa"
+            className="w-28 px-2.5 py-1.5 bg-[#0F172A] border border-[#334155] rounded text-xs text-white font-mono focus:outline-none focus:border-[#EA5800]"
+          />
+          <button
+            onClick={saveAttendance}
+            disabled={attendanceSaving}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-medium transition-all cursor-pointer disabled:opacity-50"
+          >
+            {attendanceSaving ? "..." : attendanceSaved ? "✓" : "Enregistrer"}
+          </button>
+        </div>
+      </div>
+
+      {/* ─── Staff Table with Attendance Checkboxes ──────────────── */}
       <div className="bg-card border border-white/5 rounded-lg overflow-x-auto">
         <table className="w-full">
           <thead>
             <tr className="border-b border-white/5">
+              <TH className="w-10">Présent</TH>
               <TH>Employé</TH><TH>Téléphone</TH><TH>CIN</TH><TH>Poste</TH><TH>Salaire</TH><TH>Embauché le</TH><TH>Statut</TH><TH>Actions</TH>
             </tr>
           </thead>
           <tbody>
-            {staff.map((s, i) => (
-              <TR key={s.cin} i={i}>
-                <td className="px-3 py-3">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center text-sm font-bold text-blue-400 flex-shrink-0">
-                      {s.name.charAt(0)}
+            {staff.map((s, i) => {
+              const isPresent = (attendance[s.cin] || "Présent") === "Présent";
+              return (
+                <TR key={s.cin} i={i}>
+                  <td className="px-3 py-3">
+                    <button
+                      onClick={() => toggleAttendance(s.cin)}
+                      className={`w-6 h-6 rounded border-2 flex items-center justify-center transition-all cursor-pointer ${
+                        isPresent
+                          ? "bg-emerald-500 border-emerald-500"
+                          : "border-white/20 bg-transparent hover:border-white/40"
+                      }`}
+                    >
+                      {isPresent && <CheckCircle className="w-4 h-4 text-white" />}
+                    </button>
+                  </td>
+                  <td className="px-3 py-3">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center text-sm font-bold text-blue-400 flex-shrink-0">
+                        {s.name.charAt(0)}
+                      </div>
+                      <span className="font-medium text-white text-sm">{s.name}</span>
                     </div>
-                    <span className="font-medium text-white text-sm">{s.name}</span>
-                  </div>
-                </td>
-                <TD mono dim>{s.phone}</TD>
-                <TD mono dim>{s.cin}</TD>
-                <TD dim>{s.role}</TD>
-                <td className="px-3 py-3 font-mono text-xs font-bold text-emerald-400">{s.salary.toLocaleString()} DH</td>
-                <TD mono dim>{s.hired}</TD>
-                <td className="px-3 py-3"><Badge s={s.status} /></td>
-                <td className="px-3 py-3"><ActionIcons onEdit={() => openEdit(s)} onDelete={() => setStaff(staff.filter(item => item.cin !== s.cin))} /></td>
+                  </td>
+                  <TD mono dim>{s.phone}</TD>
+                  <TD mono dim>{s.cin}</TD>
+                  <TD dim>{s.role}</TD>
+                  <td className="px-3 py-3 font-mono text-xs font-bold text-emerald-400">{s.salary.toLocaleString()} DH</td>
+                  <TD mono dim>{s.hired}</TD>
+                  <td className="px-3 py-3"><Badge s={s.status} /></td>
+                  <td className="px-3 py-3"><ActionIcons onEdit={() => openEdit(s)} onDelete={() => setStaff(staff.filter(item => item.cin !== s.cin))} /></td>
+                </TR>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+// ─── ATTENDANCE HISTORY ───────────────────────────────────────────────────────
+
+function AttendanceHistory() {
+  const [search, setSearch] = useState("");
+  const [history, setHistory] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    (async () => {
+      const d = await boutiqueApi("staff-attendance-history", { limit: 500 });
+      if (d?.history) setHistory(d.history);
+      setLoading(false);
+    })();
+  }, []);
+
+  const filtered = history.filter((h: any) =>
+    h.staff?.name?.toLowerCase().includes(search.toLowerCase()) ||
+    h.staff_cin?.toLowerCase().includes(search.toLowerCase()) ||
+    h.date?.includes(search)
+  );
+
+  return (
+    <div className="p-6">
+      <PageHeader
+        title="Historique des pointages"
+        count={history.length}
+        actions={
+          <>
+            <SearchInput placeholder="Rechercher employé ou date…" value={search} onChange={setSearch} />
+            <Btn onClick={() => downloadCSV(filtered, "pointages")}><Download className="w-3.5 h-3.5" /> Export</Btn>
+          </>
+        }
+      />
+      <div className="bg-card border border-white/5 rounded-lg overflow-x-auto">
+        <table className="w-full">
+          <thead>
+            <tr className="border-b border-white/5">
+              <TH>Date</TH><TH>Employé</TH><TH>Poste</TH><TH>Statut</TH>
+            </tr>
+          </thead>
+          <tbody>
+            {loading ? (
+              <tr>
+                <td colSpan={4} className="px-3 py-10 text-center text-white/20 text-sm">Chargement...</td>
+              </tr>
+            ) : filtered.length === 0 ? (
+              <tr>
+                <td colSpan={4} className="px-3 py-10 text-center text-white/20 text-sm">Aucun historique</td>
+              </tr>
+            ) : filtered.map((h: any, i: number) => (
+              <TR key={h.id || i} i={i}>
+                <TD mono dim>{h.date}</TD>
+                <TD>{h.staff?.name || h.staff_cin}</TD>
+                <TD dim>{h.staff?.role || "—"}</TD>
+                <td className="px-3 py-3"><Badge s={h.status} /></td>
               </TR>
             ))}
           </tbody>
@@ -1692,6 +1846,7 @@ const NAV: NavItem[] = [
   { id: "purchases", label: "Achats", Icon: Truck, group: "Boutique" },
   { id: "suppliers", label: "Fournisseurs", Icon: Truck, group: "Boutique" },
   { id: "staff", label: "Personnel", Icon: UserCheck, group: "RH & Finance" },
+  { id: "attendance", label: "Pointages", Icon: Clock, group: "RH & Finance" },
   { id: "caisse", label: "Caisse", Icon: DollarSign, group: "RH & Finance" },
   { id: "cheques", label: "Chèques", Icon: CreditCard, group: "RH & Finance" },
   { id: "expenses", label: "Dépenses", Icon: Receipt, group: "RH & Finance" },
@@ -1811,6 +1966,7 @@ export default function App() {
       case "purchases": return <Purchases />;
       case "suppliers": return <Suppliers />;
       case "staff": return <Staff />;
+      case "attendance": return <AttendanceHistory />;
       case "caisse": return <CaissePanel />;
       case "cheques": return <ChequePanel />;
       case "expenses": return <Expenses />;

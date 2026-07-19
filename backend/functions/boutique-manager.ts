@@ -435,6 +435,38 @@ serve(async (req: Request) => {
         return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
 
+      // ─── Staff Attendance ──────────────────────────────────────────
+      case "staff-attendance-save": {
+        const attendanceDate = body.date || today();
+        const records = body.records || []; // [{ staff_cin, status }]
+
+        // Upsert all attendance records for this date
+        for (const record of records) {
+          const { error } = await supabase.from("staff_attendance").upsert({
+            staff_cin: record.staff_cin,
+            date: attendanceDate,
+            status: record.status,
+          }, { onConflict: "staff_cin,date" });
+          if (error) console.error("Attendance upsert error:", error);
+        }
+
+        return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+      case "staff-attendance-get": {
+        const date = body.date || today();
+        const { data } = await supabase.from("staff_attendance")
+          .select("*")
+          .eq("date", date);
+        return new Response(JSON.stringify({ attendance: data || [] }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+      case "staff-attendance-history": {
+        const { data } = await supabase.from("staff_attendance")
+          .select("*, staff!inner(name, cin, role)")
+          .order("date", { ascending: false })
+          .limit(body.limit || 100);
+        return new Response(JSON.stringify({ history: data || [] }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+
       // ─── Caisse ────────────────────────────────────────────────────
       case "caisse-get": {
         const { data } = await supabase.from("caisse").select("*").limit(1).single();
