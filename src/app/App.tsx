@@ -1536,7 +1536,7 @@ function Staff() {
                   <TD dim>{s.role}</TD>
                   <td className="px-3 py-3 font-mono text-xs font-bold text-emerald-400">{s.salary.toLocaleString()} DH</td>
                   <TD mono dim>{s.hired}</TD>
-                  <td className="px-3 py-3"><Badge s={s.status} /></td>
+                  <td className="px-3 py-3"><Badge s={attendance[s.cin] || "Présent"} /></td>
                   <td className="px-3 py-3"><ActionIcons onEdit={() => openEdit(s)} onDelete={() => setStaff(staff.filter(item => item.cin !== s.cin))} /></td>
                 </TR>
               );
@@ -1554,6 +1554,9 @@ function AttendanceHistory() {
   const [search, setSearch] = useState("");
   const [history, setHistory] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
 
   useEffect(() => {
     (async () => {
@@ -1563,17 +1566,46 @@ function AttendanceHistory() {
     })();
   }, []);
 
-  const filtered = history.filter((h: any) =>
-    h.staff?.name?.toLowerCase().includes(search.toLowerCase()) ||
-    h.staff_cin?.toLowerCase().includes(search.toLowerCase()) ||
-    h.date?.includes(search)
-  );
+  // Parse date string "dd/mm/yyyy" to Date for comparison
+  const parseDate = (dateStr: string) => {
+    const [d, m, y] = dateStr.split("/").map(Number);
+    return new Date(y, m - 1, d);
+  };
+
+  const filtered = history.filter((h: any) => {
+    // Text search
+    const matchesSearch =
+      h.staff?.name?.toLowerCase().includes(search.toLowerCase()) ||
+      h.staff_cin?.toLowerCase().includes(search.toLowerCase()) ||
+      h.date?.includes(search);
+
+    if (!matchesSearch) return false;
+
+    // Status filter
+    if (statusFilter && h.status !== statusFilter) return false;
+
+    // Date range filter
+    if (dateFrom && dateTo) {
+      const hDate = parseDate(h.date);
+      const from = parseDate(dateFrom);
+      const to = parseDate(dateTo);
+      return hDate >= from && hDate <= to;
+    }
+    if (dateFrom) {
+      return h.date === dateFrom;
+    }
+    if (dateTo) {
+      return h.date === dateTo;
+    }
+
+    return true;
+  });
 
   return (
     <div className="p-6">
       <PageHeader
         title="Historique des pointages"
-        count={history.length}
+        count={filtered.length}
         actions={
           <>
             <SearchInput placeholder="Rechercher employé ou date…" value={search} onChange={setSearch} />
@@ -1581,6 +1613,51 @@ function AttendanceHistory() {
           </>
         }
       />
+
+      {/* ─── Filters ──────────────────────────────────────────────── */}
+      <div className="flex items-center gap-3 mb-4 bg-card border border-white/5 rounded-lg px-5 py-3 flex-wrap">
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-white/40 font-medium">Du</span>
+          <input
+            type="text"
+            value={dateFrom}
+            onChange={e => setDateFrom(e.target.value)}
+            placeholder="jj/mm/aaaa"
+            className="w-28 px-2.5 py-1.5 bg-[#0F172A] border border-[#334155] rounded text-xs text-white font-mono focus:outline-none focus:border-[#EA5800]"
+          />
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-white/40 font-medium">Au</span>
+          <input
+            type="text"
+            value={dateTo}
+            onChange={e => setDateTo(e.target.value)}
+            placeholder="jj/mm/aaaa"
+            className="w-28 px-2.5 py-1.5 bg-[#0F172A] border border-[#334155] rounded text-xs text-white font-mono focus:outline-none focus:border-[#EA5800]"
+          />
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-white/40 font-medium">Statut</span>
+          <select
+            value={statusFilter}
+            onChange={e => setStatusFilter(e.target.value)}
+            className="px-2.5 py-1.5 bg-[#0F172A] border border-[#334155] rounded text-xs text-white font-mono focus:outline-none focus:border-[#EA5800]"
+          >
+            <option value="">Tous</option>
+            <option value="Présent">Présent</option>
+            <option value="Absent">Absent</option>
+          </select>
+        </div>
+        {(dateFrom || dateTo || statusFilter) && (
+          <button
+            onClick={() => { setDateFrom(""); setDateTo(""); setStatusFilter(""); }}
+            className="text-xs text-white/40 hover:text-white transition-colors"
+          >
+            Réinitialiser
+          </button>
+        )}
+      </div>
+
       <div className="bg-card border border-white/5 rounded-lg overflow-x-auto">
         <table className="w-full">
           <thead>
