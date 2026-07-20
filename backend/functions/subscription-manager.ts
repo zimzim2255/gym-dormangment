@@ -112,6 +112,26 @@ serve(async (req: Request) => {
         return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
 
+      case "reminder-trigger": {
+        // Manually trigger the reminder check (calls the subscription-reminder function)
+        const reminderUrl = Deno.env.get("SUPABASE_URL") + "/functions/v1/subscription-reminder";
+        const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+        const res = await fetch(reminderUrl, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${serviceKey}`, "Content-Type": "application/json" },
+          body: JSON.stringify({}),
+        });
+        const data = await res.json();
+        return new Response(JSON.stringify(data), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+      case "reminder-logs": {
+        const { data } = await supabase.from("reminder_logs")
+          .select("*")
+          .order("created_at", { ascending: false })
+          .limit(body.limit || 100);
+        return new Response(JSON.stringify({ logs: data || [] }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+
       default:
         return new Response(JSON.stringify({ error: "Invalid type" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }

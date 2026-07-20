@@ -35,7 +35,7 @@ import ExpenseEditCard from "./components/erp/ExpenseEditCard";
 
 type ViewId =
   | "dashboard" | "members" | "subscriptions" | "access" | "history"
-  | "stock" | "sales" | "purchases" | "suppliers" | "staff" | "expenses" | "reports" | "settings" | "caisse" | "cheques" | "attendance";
+  | "stock" | "sales" | "purchases" | "suppliers" | "staff" | "expenses" | "reports" | "settings" | "caisse" | "cheques" | "attendance" | "reminders";
 
 // ─── mock data ────────────────────────────────────────────────────────────────
 
@@ -1974,6 +1974,83 @@ function KpiCard({ icon: Icon, label, value, color }: { icon: any; label: string
   );
 }
 
+// ─── REMINDERS PANEL ──────────────────────────────────────────────────────────
+
+function RemindersPanel() {
+  const [logs, setLogs] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [triggering, setTriggering] = useState(false);
+  const [triggerResult, setTriggerResult] = useState<any>(null);
+
+  const fetchLogs = async () => {
+    setLoading(true);
+    const d = await subApi("reminder-logs", { limit: 200 });
+    if (d?.logs) setLogs(d.logs);
+    setLoading(false);
+  };
+
+  useEffect(() => { fetchLogs(); }, []);
+
+  const triggerReminder = async () => {
+    setTriggering(true);
+    setTriggerResult(null);
+    const d = await subApi("reminder-trigger");
+    setTriggerResult(d);
+    setTriggering(false);
+    fetchLogs();
+  };
+
+  return (
+    <div className="p-6 space-y-4">
+      <PageHeader
+        title="Rappels WhatsApp"
+        count={logs.length}
+        actions={
+          <>
+            <Btn onClick={triggerReminder} disabled={triggering}>
+              <Bell className="w-3.5 h-3.5" /> {triggering ? "Envoi..." : "Déclencher les rappels"}
+            </Btn>
+            <Btn onClick={fetchLogs}><RefreshCw className="w-3.5 h-3.5" /> Actualiser</Btn>
+          </>
+        }
+      />
+
+      {triggerResult && (
+        <div className={`px-4 py-3 rounded-lg border text-sm ${triggerResult.success ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400" : "bg-red-500/10 border-red-500/20 text-red-400"}`}>
+          {triggerResult.success
+            ? `${triggerResult.results?.length || 0} rappel(s) traité(s) pour le ${triggerResult.checked}`
+            : `Erreur: ${triggerResult.error || "Inconnue"}`}
+        </div>
+      )}
+
+      <div className="bg-card border border-white/5 rounded-lg overflow-x-auto">
+        <table className="w-full">
+          <thead>
+            <tr className="border-b border-white/5">
+              <TH>Date</TH><TH>Membre</TH><TH>Téléphone</TH><TH>Statut</TH><TH>Message</TH>
+            </tr>
+          </thead>
+          <tbody>
+            {loading ? (
+              <tr><td colSpan={5} className="px-3 py-10 text-center text-white/20 text-sm">Chargement...</td></tr>
+            ) : logs.length === 0 ? (
+              <tr><td colSpan={5} className="px-3 py-10 text-center text-white/20 text-sm">Aucun rappel envoyé</td></tr>
+            ) : logs.map((log: any, i: number) => (
+              <TR key={log.id || i} i={i}>
+                <TD mono dim>{new Date(log.created_at).toLocaleString("fr-FR")}</TD>
+                <TD>{log.member_name}</TD>
+                <TD mono dim>{log.member_phone}</TD>
+                <td className="px-3 py-3"><Badge s={log.sent ? "Envoyé" : "Échec"} /></td>
+                <TD dim>{log.message}</TD>
+              </TR>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
 // ─── SETTINGS ─────────────────────────────────────────────────────────────────
 
 function SettingsView() {
@@ -2087,6 +2164,7 @@ const NAV: NavItem[] = [
   { id: "suppliers", label: "Fournisseurs", Icon: Truck, group: "Boutique" },
   { id: "staff", label: "Personnel", Icon: UserCheck, group: "RH & Finance" },
   { id: "attendance", label: "Pointages", Icon: Clock, group: "RH & Finance" },
+  { id: "reminders", label: "Rappels", Icon: Bell, group: "RH & Finance" },
   { id: "caisse", label: "Caisse", Icon: DollarSign, group: "RH & Finance" },
   { id: "cheques", label: "Chèques", Icon: CreditCard, group: "RH & Finance" },
   { id: "expenses", label: "Dépenses", Icon: Receipt, group: "RH & Finance" },
@@ -2207,6 +2285,7 @@ export default function App() {
       case "suppliers": return <Suppliers />;
       case "staff": return <Staff />;
       case "attendance": return <AttendanceHistory />;
+      case "reminders": return <RemindersPanel />;
       case "caisse": return <CaissePanel />;
       case "cheques": return <ChequePanel />;
       case "expenses": return <Expenses />;
