@@ -893,7 +893,6 @@ function Stock() {
   const [showEdit, setShowEdit] = useState(false);
   const [form, setForm] = useState({ code: "", name: "", cat: "", supplier: "", buyPrice: 0, sellPrice: 0, qty: 0, minStock: 1, status: "En stock", photo: "" });
   const [editForm, setEditForm] = useState<any>(form);
-
   useEffect(() => {
     (async () => {
       const [prodData, suppData] = await Promise.all([
