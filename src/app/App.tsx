@@ -964,13 +964,22 @@ function Stock() {
         <table className="w-full">
           <thead>
             <tr className="border-b border-white/5">
-              <TH>Code</TH><TH>Produit</TH><TH>Catégorie</TH><TH>Fournisseur</TH>
+              <TH>Photo</TH><TH>Code</TH><TH>Produit</TH><TH>Catégorie</TH><TH>Fournisseur</TH>
               <TH>Prix achat</TH><TH>Prix vente</TH><TH>Qté</TH><TH>Stock min</TH><TH>Statut</TH><TH>Actions</TH>
             </tr>
           </thead>
           <tbody>
             {filtered.map((p, i) => (
               <TR key={p.code} i={i}>
+                <td className="px-3 py-3">
+                  {p.photo ? (
+                    <img src={p.photo} alt={p.name} className="w-10 h-10 rounded-lg object-cover border border-white/10" />
+                  ) : (
+                    <div className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center border border-white/5">
+                      <Package className="w-5 h-5 text-white/20" />
+                    </div>
+                  )}
+                </td>
                 <td className="px-3 py-3 font-mono text-xs text-[#f04e23]">{p.code}</td>
                 <TD>{p.name}</TD>
                 <TD dim>{p.cat}</TD>

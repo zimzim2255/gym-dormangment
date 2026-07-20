@@ -69,6 +69,7 @@ export default function ExpenseAddCard({ form, setForm, onClose, onSave, supplie
       formData.append("file", file);
       const res = await fetch(`${FUNCTIONS_URL}/cloudinary-upload`, {
         method: "POST",
+        headers: { Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}` },
         body: formData,
       });
       if (res.ok) {
