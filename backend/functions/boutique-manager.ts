@@ -42,6 +42,7 @@ serve(async (req: Request) => {
           code, name: body.name, cat: body.cat, supplier: body.supplier,
           buy_price: buyPrice, sell_price: body.sellPrice || 0,
           qty, min_stock: body.minStock || 1, status, photo: body.photo || "",
+          updated_by: body.updated_by || null,
         }).select().single();
         if (error) throw error;
 
@@ -63,6 +64,7 @@ serve(async (req: Request) => {
           name: body.name, cat: body.cat, supplier: body.supplier,
           buy_price: body.buyPrice, sell_price: body.sellPrice,
           qty, min_stock: body.minStock || 1, status, photo: body.photo || "",
+          updated_by: body.updated_by || null,
         }).eq("code", body.code).select().single();
         if (error) throw error;
         return new Response(JSON.stringify({ success: true, product: data }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
@@ -506,6 +508,27 @@ serve(async (req: Request) => {
           .order("date", { ascending: false })
           .limit(body.limit || 100);
         return new Response(JSON.stringify({ history: data || [] }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+
+      // ─── Activity Log ─────────────────────────────────────────────
+      case "activity-log": {
+        const { error } = await supabase.from("activity_logs").insert({
+          employee_name: body.employee_name || "System",
+          action: body.action,
+          entity_type: body.entity_type,
+          entity_id: body.entity_id || null,
+          description: body.description || "",
+          details: body.details || null,
+        });
+        if (error) console.error("Activity log error:", error);
+        return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+      case "activity-logs": {
+        const { data } = await supabase.from("activity_logs")
+          .select("*")
+          .order("created_at", { ascending: false })
+          .limit(body.limit || 100);
+        return new Response(JSON.stringify({ logs: data || [] }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
 
       // ─── Caisse ────────────────────────────────────────────────────

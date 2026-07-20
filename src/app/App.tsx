@@ -893,6 +893,8 @@ function Stock() {
   const [showEdit, setShowEdit] = useState(false);
   const [form, setForm] = useState({ code: "", name: "", cat: "", supplier: "", buyPrice: 0, sellPrice: 0, qty: 0, minStock: 1, status: "En stock", photo: "" });
   const [editForm, setEditForm] = useState<any>(form);
+  const [employeeName, setEmployeeName] = useState(() => localStorage.getItem("stock_employee") || "");
+
   useEffect(() => {
     (async () => {
       const [prodData, suppData] = await Promise.all([
@@ -901,6 +903,12 @@ function Stock() {
       ]);
       if (prodData?.products) setProducts(prodData.products);
       if (suppData?.suppliers) setSupplierNames(suppData.suppliers.map((s: any) => s.name));
+      // Auto-detect employee name from staff list (first staff member by default)
+      const staffData = await boutiqueApi("staff-list");
+      if (staffData?.staff?.length > 0 && !localStorage.getItem("stock_employee")) {
+        setEmployeeName(staffData.staff[0].name);
+        localStorage.setItem("stock_employee", staffData.staff[0].name);
+      }
     })();
   }, []);
 
@@ -910,8 +918,11 @@ function Stock() {
   const ruptures = products.filter((p: any) => p.status === "Rupture" || p.status === "Stock bas").length;
 
   const addProduct = async () => {
-    const r = await boutiqueApi("product-create", { ...form, code: form.code || undefined });
-    if (r?.product) setProducts([r.product, ...products]);
+    if (!employeeName) return;
+    const r = await boutiqueApi("product-create", { ...form, code: form.code || undefined, updated_by: employeeName });
+    if (r?.product) {
+      setProducts([r.product, ...products]);
+    }
     setForm({ code: "", name: "", cat: "", supplier: "", buyPrice: 0, sellPrice: 0, qty: 0, minStock: 1, status: "En stock", photo: "" });
     setShowAdd(false);
   };
@@ -919,12 +930,16 @@ function Stock() {
   const openEditProduct = (product: any) => { setEditForm(product); setShowEdit(true); };
 
   const handleEditProduct = async () => {
-    const r = await boutiqueApi("product-update", editForm);
-    if (r?.success) setProducts(products.map((p: any) => p.code === editForm.code ? editForm : p));
+    if (!employeeName) return;
+    const r = await boutiqueApi("product-update", { ...editForm, updated_by: employeeName });
+    if (r?.success) {
+      setProducts(products.map((p: any) => p.code === editForm.code ? editForm : p));
+    }
     setShowEdit(false);
   };
 
   const handleDeleteProduct = async (code: string) => {
+    if (!employeeName) return;
     await boutiqueApi("product-delete", { code });
     setProducts(products.filter((p: any) => p.code !== code));
   };
@@ -936,6 +951,12 @@ function Stock() {
         count={products.length}
         actions={
           <>
+            {employeeName && (
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded bg-[#f04e23]/10 border border-[#f04e23]/20">
+                <UserCheck className="w-3.5 h-3.5 text-[#f04e23]" />
+                <span className="text-xs text-[#f04e23] font-medium">{employeeName}</span>
+              </div>
+            )}
             {ruptures > 0 && (
               <div className="px-2.5 py-1.5 rounded bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-mono">
                 {ruptures} alerte{ruptures > 1 ? "s" : ""} stock
@@ -964,7 +985,7 @@ function Stock() {
           <thead>
             <tr className="border-b border-white/5">
               <TH>Photo</TH><TH>Code</TH><TH>Produit</TH><TH>Catégorie</TH><TH>Fournisseur</TH>
-              <TH>Prix achat</TH><TH>Prix vente</TH><TH>Qté</TH><TH>Stock min</TH><TH>Statut</TH><TH>Actions</TH>
+              <TH>Prix achat</TH><TH>Prix vente</TH><TH>Qté</TH><TH>Stock min</TH><TH>Statut</TH><TH>Employé</TH><TH>Actions</TH>
             </tr>
           </thead>
           <tbody>
@@ -988,6 +1009,7 @@ function Stock() {
                 <td className="px-3 py-3 font-mono text-sm font-bold text-white">{p.qty}</td>
                 <TD mono dim>{p.minStock}</TD>
                 <td className="px-3 py-3"><Badge s={p.status} /></td>
+                <TD dim>{p.updated_by || "—"}</TD>
                 <td className="px-3 py-3"><ActionIcons onEdit={() => openEditProduct(p)} onDelete={() => setProducts(products.filter(item => item.code !== p.code))} /></td>
               </TR>
             ))}
@@ -1797,41 +1819,157 @@ function Expenses() {
 
 // ─── REPORTS ──────────────────────────────────────────────────────────────────
 
-const REPORT_ITEMS = [
-  { name: "Revenus mensuels", desc: "Synthèse des recettes par mois", Icon: TrendingUp, color: "text-[#f04e23]", bg: "bg-[#f04e23]/10" },
-  { name: "Dépenses détaillées", desc: "Toutes les dépenses par catégorie", Icon: TrendingDown, color: "text-red-400", bg: "bg-red-500/10" },
-  { name: "Bénéfices nets", desc: "Revenus moins dépenses", Icon: BadgeCheck, color: "text-emerald-400", bg: "bg-emerald-500/10" },
-  { name: "Abonnements actifs", desc: "Liste des abonnements en cours", Icon: CreditCard, color: "text-blue-400", bg: "bg-blue-500/10" },
-  { name: "Paiements reçus", desc: "Historique complet des paiements", Icon: Receipt, color: "text-violet-400", bg: "bg-violet-500/10" },
-  { name: "Adhérents actifs", desc: "Membres avec abonnement valide", Icon: Users, color: "text-cyan-400", bg: "bg-cyan-500/10" },
-  { name: "Abonnements expirés", desc: "Membres à relancer en priorité", Icon: XCircle, color: "text-amber-400", bg: "bg-amber-500/10" },
-  { name: "Présences", desc: "Journal d'accès complet", Icon: Clock, color: "text-sky-400", bg: "bg-sky-500/10" },
-  { name: "Ventes boutique", desc: "Rapport des ventes produits", Icon: ShoppingCart, color: "text-pink-400", bg: "bg-pink-500/10" },
-  { name: "État du stock", desc: "Inventaire et alertes de rupture", Icon: Package, color: "text-lime-400", bg: "bg-lime-500/10" },
-  { name: "Salaires", desc: "Fiches de paie du personnel", Icon: UserCheck, color: "text-indigo-400", bg: "bg-indigo-500/10" },
-];
-
 function Reports() {
+  const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    (async () => {
+      const [sales, purchases, expenses, members, subs, products, staff, caisseTx] = await Promise.all([
+        boutiqueApi("sale-list"),
+        boutiqueApi("purchase-list"),
+        boutiqueApi("expense-list"),
+        api("list"),
+        subApi("list"),
+        boutiqueApi("product-list"),
+        boutiqueApi("staff-list"),
+        boutiqueApi("caisse-transactions", { limit: 500 }),
+      ]);
+
+      const salesList = sales?.sales || [];
+      const purchasesList = purchases?.purchases || [];
+      const expensesList = expenses?.expenses || [];
+      const membersList = members?.members || [];
+      const subsList = subs?.subscriptions || [];
+      const productsList = products?.products || [];
+      const staffList = staff?.staff || [];
+      const txList = caisseTx?.transactions || [];
+
+      // Revenue from sales
+      const totalRevenue = salesList.reduce((s: number, v: any) => s + (v.total || 0), 0);
+      const totalPurchases = purchasesList.reduce((s: number, p: any) => s + (p.total || 0), 0);
+      const totalExpenses = expensesList.reduce((s: number, e: any) => s + (e.amount || 0), 0);
+      const totalCost = totalPurchases + totalExpenses;
+      const netProfit = totalRevenue - totalCost;
+
+      // Active members
+      const activeMembers = membersList.filter((m: any) => m.status === "Actif").length;
+      const activeSubs = subsList.filter((s: any) => s.status === "Payé" || s.status === "Paiement partiel").length;
+      const expiredSubs = subsList.filter((s: any) => s.status === "Non payé" || s.remaining > 0).length;
+
+      // Stock alerts
+      const lowStock = productsList.filter((p: any) => p.status === "Stock bas" || p.status === "Rupture").length;
+
+      // Staff
+      const presentStaff = staffList.filter((s: any) => s.status === "Présent").length;
+
+      // Caisse breakdown
+      const caisseIn = txList.filter((t: any) => t.amount > 0).reduce((s: number, t: any) => s + t.amount, 0);
+      const caisseOut = txList.filter((t: any) => t.amount < 0).reduce((s: number, t: any) => s + Math.abs(t.amount), 0);
+
+      // Top products
+      const productSales: Record<string, { name: string; qty: number; revenue: number }> = {};
+      salesList.forEach((s: any) => {
+        const key = s.product_code || s.product;
+        if (!key) return;
+        if (!productSales[key]) productSales[key] = { name: s.product || key, qty: 0, revenue: 0 };
+        productSales[key].qty += s.qty || 0;
+        productSales[key].revenue += s.total || 0;
+      });
+      const topProducts = Object.values(productSales).sort((a: any, b: any) => b.revenue - a.revenue).slice(0, 5);
+
+      // Recent transactions
+      const recentTx = txList.slice(0, 10);
+
+      setData({ totalRevenue, totalPurchases, totalExpenses, totalCost, netProfit, activeMembers, activeSubs, expiredSubs, lowStock, presentStaff, staffTotal: staffList.length, caisseIn, caisseOut, topProducts, recentTx, salesCount: salesList.length, membersCount: membersList.length, productsCount: productsList.length });
+      setLoading(false);
+    })();
+  }, []);
+
+  if (loading) return <div className="p-6 text-center text-white/20 text-sm">Chargement...</div>;
+  if (!data) return <div className="p-6 text-center text-white/20 text-sm">Aucune donnée</div>;
+
   return (
-    <div className="p-6">
-      <PageHeader title="Rapports" />
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-        {REPORT_ITEMS.map(r => (
-          <div key={r.name} className="bg-card border border-white/5 hover:border-white/10 rounded-lg p-4 flex items-start gap-3.5 cursor-pointer group transition-all hover:translate-y-[-1px]">
-            <div className={`p-2.5 rounded-lg ${r.bg} flex-shrink-0`}>
-              <r.Icon className={`w-5 h-5 ${r.color}`} />
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="font-semibold text-white text-sm mb-0.5 group-hover:text-[#f04e23] transition-colors">{r.name}</div>
-              <div className="text-xs text-white/35 leading-relaxed">{r.desc}</div>
-            </div>
-            <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
-              <button className="p-1 rounded bg-white/5 hover:bg-white/10 text-white/35 transition-colors"><Printer className="w-3.5 h-3.5" /></button>
-              <button className="p-1 rounded bg-white/5 hover:bg-white/10 text-white/35 transition-colors"><Download className="w-3.5 h-3.5" /></button>
-            </div>
-          </div>
-        ))}
+    <div className="p-6 space-y-5">
+      <PageHeader title="Rapports" count={data.salesCount + data.membersCount + data.productsCount} />
+
+      {/* KPI Cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
+        <KpiCard icon={TrendingUp} label="Revenus" value={`${data.totalRevenue.toLocaleString()} DH`} color="emerald" />
+        <KpiCard icon={TrendingDown} label="Dépenses" value={`${data.totalCost.toLocaleString()} DH`} color="red" />
+        <KpiCard icon={BadgeCheck} label="Bénéfice net" value={`${data.netProfit.toLocaleString()} DH`} color={data.netProfit >= 0 ? "emerald" : "red"} />
+        <KpiCard icon={Users} label="Adhérents actifs" value={`${data.activeMembers}/${data.membersCount}`} color="blue" />
+        <KpiCard icon={CreditCard} label="Abonnements actifs" value={data.activeSubs} color="violet" />
+        <KpiCard icon={XCircle} label="Abonnements expirés" value={data.expiredSubs} color="amber" />
+        <KpiCard icon={Package} label="Alertes stock" value={data.lowStock} color="red" />
+        <KpiCard icon={UserCheck} label="Personnel présent" value={`${data.presentStaff}/${data.staffTotal}`} color="sky" />
+        <KpiCard icon={DollarSign} label="Caisse entrées" value={`${data.caisseIn.toLocaleString()} DH`} color="emerald" />
+        <KpiCard icon={DollarSign} label="Caisse sorties" value={`${data.caisseOut.toLocaleString()} DH`} color="red" />
       </div>
+
+      {/* Top Products */}
+      {data.topProducts.length > 0 && (
+        <div className="bg-card border border-white/5 rounded-lg">
+          <div className="px-5 py-4 border-b border-white/5">
+            <h3 className="font-semibold text-white text-sm">Top 5 produits les plus vendus</h3>
+          </div>
+          <div className="divide-y divide-white/5">
+            {data.topProducts.map((p: any, i: number) => (
+              <div key={i} className="px-5 py-3 flex items-center gap-3">
+                <span className="w-6 text-xs text-white/30 font-mono">#{i + 1}</span>
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm text-white truncate">{p.name}</div>
+                </div>
+                <div className="text-right">
+                  <div className="text-sm text-white font-mono">{p.qty} vendu{p.qty > 1 ? "s" : ""}</div>
+                  <div className="text-xs text-emerald-400 font-mono">{p.revenue.toLocaleString()} DH</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Recent Caisse Transactions */}
+      {data.recentTx.length > 0 && (
+        <div className="bg-card border border-white/5 rounded-lg">
+          <div className="px-5 py-4 border-b border-white/5">
+            <h3 className="font-semibold text-white text-sm">Dernières transactions caisse</h3>
+          </div>
+          <div className="divide-y divide-white/5">
+            {data.recentTx.map((tx: any, i: number) => (
+              <div key={tx.id || i} className="px-5 py-2.5 flex items-center gap-3">
+                <div className={`w-2 h-2 rounded-full ${tx.amount > 0 ? "bg-emerald-400" : "bg-red-400"}`} />
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm text-white truncate">{tx.label}</div>
+                  <div className="text-xs text-white/30 font-mono">{tx.date}</div>
+                </div>
+                <div className={`font-mono text-sm font-bold ${tx.amount > 0 ? "text-emerald-400" : "text-red-400"}`}>
+                  {tx.amount > 0 ? "+" : ""}{tx.amount.toLocaleString()} DH
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function KpiCard({ icon: Icon, label, value, color }: { icon: any; label: string; value: string | number; color: string }) {
+  const colors: Record<string, string> = {
+    emerald: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+    red: "bg-red-500/10 text-red-400 border-red-500/20",
+    blue: "bg-blue-500/10 text-blue-400 border-blue-500/20",
+    violet: "bg-violet-500/10 text-violet-400 border-violet-500/20",
+    amber: "bg-amber-500/10 text-amber-400 border-amber-500/20",
+    sky: "bg-sky-500/10 text-sky-400 border-sky-500/20",
+  };
+  return (
+    <div className={`${colors[color] || colors.emerald} border rounded-lg p-4`}>
+      <Icon className="w-5 h-5 mb-2" />
+      <div className="text-lg font-bold font-mono">{typeof value === "number" ? value.toLocaleString() : value}</div>
+      <div className="text-xs text-white/40 mt-0.5">{label}</div>
     </div>
   );
 }
