@@ -81,6 +81,14 @@ serve(async (req: Request) => {
         return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
 
+      case "subscription-history": {
+        const { data } = await supabase.from("subscription_history")
+          .select("*")
+          .eq("member_id", body.member_id)
+          .order("created_at", { ascending: false });
+        return new Response(JSON.stringify({ history: data || [] }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+
       default:
         return new Response(JSON.stringify({ error: "Invalid type" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }

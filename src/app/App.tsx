@@ -32,6 +32,7 @@ import CaissePanel from "./components/door/CaissePanel";
 import ChequePanel from "./components/door/ChequePanel";
 import { getAccessLogs } from "./services/doorService";
 import ExpenseEditCard from "./components/erp/ExpenseEditCard";
+import MemberDetailCard from "./components/erp/MemberDetailCard";
 
 type ViewId =
   | "dashboard" | "members" | "subscriptions" | "access" | "history"
@@ -448,6 +449,7 @@ function Members() {
     emergencyContact: "", emergencyPhone: "", photo: "",
   });
   const [editForm, setEditForm] = useState<Member>(form);
+  const [viewMember, setViewMember] = useState<any>(null);
 
   // Load members from Supabase on mount
   useEffect(() => {
@@ -547,6 +549,8 @@ function Members() {
         <MemberEditCard form={editForm} setForm={setEditForm} onClose={() => setShowEdit(false)} onSave={handleEditSave} />
       )}
 
+      {viewMember && <MemberDetailCard member={viewMember} onClose={() => setViewMember(null)} />}
+
       <div className="bg-card border border-white/5 rounded-lg overflow-x-auto">
         <table className="w-full">
           <thead>
@@ -579,10 +583,38 @@ function Members() {
                 <td className="px-3 py-3"><Badge s={m.status} /></td>
                 <td className="px-3 py-3">
                   <ActionIcons
-                    onView={() => window.alert(`Profil de ${m.name} : ${m.address}, urgence ${m.emergencyContact} ${m.emergencyPhone}`)}
+                    onView={() => setViewMember(m)}
                     onEdit={() => openEdit(m)}
                     onDelete={() => handleDelete(m.id)}
-                    onPrint={() => window.alert("Imprimer fiche adhérent")}
+                    onPrint={() => {
+                      // Build CSV with member info header + subscription table
+                      const rows = [
+                        ["Fiche Adhérent", ""],
+                        ["Nom", m.name],
+                        ["CIN", m.cin || ""],
+                        ["Téléphone", m.phone || ""],
+                        ["Email", m.email || ""],
+                        ["Adresse", m.address || ""],
+                        ["Date naissance", m.dob || ""],
+                        ["Inscription", m.joined || ""],
+                        ["Statut", m.status],
+                        ["", ""],
+                        ["Abonnements", "", "Du", "Au", "Type", "Payé", "Reste", "Statut"],
+                      ];
+                      // Add subscription rows (we need to fetch them via subApi)
+                      (async () => {
+                        const subData = await subApi("list");
+                        const memberSubs = (subData?.subscriptions || []).filter((s: any) => s.member === m.name || s.member_id === m.id);
+                        memberSubs.forEach((s: any) => {
+                          rows.push(["", "", s.start || s.sub_start, s.end || s.sub_end, s.type || s.sub_type, `${s.paid} DH`, `${s.remaining > 0 ? s.remaining + " DH" : "0 DH"}`, s.status || s.sub_status]);
+                        });
+                        downloadCSV(rows.map(r => {
+                          const obj: any = {};
+                          r.forEach((v, i) => { obj[`col${i}`] = v; });
+                          return obj;
+                        }, `adherent_${m.id}`));
+                      })();
+                    }}
                   />
                 </td>
               </TR>
