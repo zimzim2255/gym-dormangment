@@ -47,6 +47,7 @@ serve(async (req: Request) => {
           id: subId, member_id: memberId, sub_type: body.subType,
           sub_start: body.subStart, sub_end: body.subEnd,
           price, paid, remaining, sub_status: subStatus,
+          updated_by: body.updated_by || null,
         }).select().single();
 
         if (error) throw error;
@@ -98,11 +99,32 @@ serve(async (req: Request) => {
         const remaining = Math.max(0, (price || 0) - (paid || 0));
         const sub_status = remaining === 0 ? "Payé" : (paid || 0) === 0 ? "Non payé" : "Paiement partiel";
 
+        // Get old values before update
+        const { data: oldSub } = await supabase.from("subscriptions").select("*").eq("id", id).single();
+
         const { data, error } = await supabase.from("subscriptions").update({
           sub_type, sub_start, sub_end, price, paid, remaining, sub_status,
+          updated_by: body.updated_by || null,
         }).eq("id", id).select().single();
 
         if (error) throw error;
+
+        // Update caisse with the difference
+        if (oldSub) {
+          const oldPaid = oldSub.paid || 0;
+          const newPaid = paid || 0;
+          const diff = newPaid - oldPaid;
+          if (diff !== 0) {
+            await supabase.rpc("update_caisse", { amount_change: diff });
+            await supabase.from("caisse_transactions").insert({
+              type: "abonnement",
+              label: `Modification abonnement ${id}: ${oldPaid}DH → ${newPaid}DH`,
+              amount: diff,
+              date: new Date().toLocaleDateString("fr-FR"),
+            });
+          }
+        }
+
         return new Response(JSON.stringify({ success: true, subscription: data }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
 

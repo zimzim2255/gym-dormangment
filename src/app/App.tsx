@@ -269,7 +269,7 @@ function ActionIcons({ onEdit, onDelete, onView, onPrint }: { onEdit?: () => voi
       {onView && <button onClick={onView} className="hover:opacity-70 transition-opacity text-white/40 hover:text-white" title="Voir"><Eye className="w-[18px] h-[18px]" /></button>}
       {onEdit && <button onClick={onEdit} className="hover:opacity-70 transition-opacity text-white/40 hover:text-white" title="Modifier"><Pencil className="w-[18px] h-[18px]" /></button>}
       {onDelete && <button onClick={onDelete} className="hover:opacity-70 transition-opacity text-white/40 hover:text-red-400" title="Supprimer"><Trash2 className="w-[18px] h-[18px]" /></button>}
-      {onPrint && <button onClick={onPrint} className="hover:opacity-70 transition-opacity text-white/40 hover:text-white" title="Imprimer"><Printer className="w-[18px] h-[18px]" /></button>}
+      {onPrint && <button onClick={onPrint} className="hover:opacity-70 transition-opacity text-white/40 hover:text-white" title="Export Excel"><Download className="w-[18px] h-[18px]" /></button>}
     </div>
   );
 }
@@ -588,31 +588,26 @@ function Members() {
                     onDelete={() => handleDelete(m.id)}
                     onPrint={() => {
                       // Build CSV with member info header + subscription table
-                      const rows = [
-                        ["Fiche Adhérent", ""],
-                        ["Nom", m.name],
-                        ["CIN", m.cin || ""],
-                        ["Téléphone", m.phone || ""],
-                        ["Email", m.email || ""],
-                        ["Adresse", m.address || ""],
-                        ["Date naissance", m.dob || ""],
-                        ["Inscription", m.joined || ""],
-                        ["Statut", m.status],
-                        ["", ""],
-                        ["Abonnements", "", "Du", "Au", "Type", "Payé", "Reste", "Statut"],
-                      ];
-                      // Add subscription rows (we need to fetch them via subApi)
                       (async () => {
                         const subData = await subApi("list");
                         const memberSubs = (subData?.subscriptions || []).filter((s: any) => s.member === m.name || s.member_id === m.id);
+                        const csvRows: any[] = [
+                          { info: "Fiche Adhérent", val: "" },
+                          { info: "Nom", val: m.name },
+                          { info: "CIN", val: m.cin || "" },
+                          { info: "Téléphone", val: m.phone || "" },
+                          { info: "Email", val: m.email || "" },
+                          { info: "Adresse", val: m.address || "" },
+                          { info: "Date naissance", val: m.dob || "" },
+                          { info: "Inscription", val: m.joined || "" },
+                          { info: "Statut", val: m.status },
+                          { info: "", val: "" },
+                          { info: "Du", val: "Au", col3: "Type", col4: "Payé", col5: "Reste", col6: "Statut" },
+                        ];
                         memberSubs.forEach((s: any) => {
-                          rows.push(["", "", s.start || s.sub_start, s.end || s.sub_end, s.type || s.sub_type, `${s.paid} DH`, `${s.remaining > 0 ? s.remaining + " DH" : "0 DH"}`, s.status || s.sub_status]);
+                          csvRows.push({ info: s.start || s.sub_start, val: s.end || s.sub_end, col3: s.type || s.sub_type, col4: `${s.paid} DH`, col5: `${s.remaining > 0 ? s.remaining + " DH" : "0 DH"}`, col6: s.status || s.sub_status });
                         });
-                        downloadCSV(rows.map(r => {
-                          const obj: any = {};
-                          r.forEach((v, i) => { obj[`col${i}`] = v; });
-                          return obj;
-                        }, `adherent_${m.id}`));
+                        downloadCSV(csvRows, `adherent_${m.id}`);
                       })();
                     }}
                   />
@@ -635,6 +630,7 @@ type Subscription = {
   id: string; member: string; phone: string; type: string; start: string;
   end: string; price: number; paid: number; remaining: number;
   status: string; payment: string; observation: string;
+  updated_by?: string;
 };
 
 async function subApi(type: string, data?: any) {
@@ -665,12 +661,21 @@ function Subscriptions() {
 
   // Load subscriptions from Supabase on mount
   const [memberNames, setMemberNames] = useState<{ id: string; name: string; phone: string }[]>([]);
+  const [subEmployeeName, setSubEmployeeName] = useState(() => localStorage.getItem("stock_employee") || "");
 
   useEffect(() => {
     (async () => {
       const [subData, memberData] = await Promise.all([subApi("list"), api("list")]);
       if (subData?.subscriptions) setSubscriptions(subData.subscriptions);
       if (memberData?.members) setMemberNames(memberData.members.map((m: any) => ({ id: m.id, name: m.name, phone: m.phone || "" })));
+      // Auto-detect employee
+      if (!localStorage.getItem("stock_employee")) {
+        const staffData = await boutiqueApi("staff-list");
+        if (staffData?.staff?.length > 0) {
+          setSubEmployeeName(staffData.staff[0].name);
+          localStorage.setItem("stock_employee", staffData.staff[0].name);
+        }
+      }
     })();
   }, []);
 
@@ -708,6 +713,7 @@ function Subscriptions() {
       memberId, subType: form.type,
       subStart: form.start, subEnd: form.end,
       price: form.price, paid: form.paid,
+      updated_by: subEmployeeName || undefined,
     });
     if (result?.subscription) {
       const s = result.subscription;
@@ -735,6 +741,7 @@ function Subscriptions() {
       id: editForm.id, sub_type: editForm.type,
       sub_start: editForm.start, sub_end: editForm.end,
       price: editForm.price, paid: editForm.paid,
+      updated_by: subEmployeeName || undefined,
     });
     if (result?.success) {
       setSubscriptions(subscriptions.map(item => item.id === editForm.id ? editForm : item));
@@ -755,7 +762,6 @@ function Subscriptions() {
         actions={
           <>
             <SearchInput placeholder="Rechercher…" value={search} onChange={setSearch} />
-            <Btn onClick={() => downloadCSV(filtered, "abonnements")}><Download className="w-3.5 h-3.5" /> Export</Btn>
             <Btn variant="primary" onClick={() => setShowAdd(prev => !prev)}><Plus className="w-3.5 h-3.5" /> {showAdd ? "Annuler" : "Nouvel abonnement"}</Btn>
           </>
         }
@@ -798,7 +804,7 @@ function Subscriptions() {
             <tr className="border-b border-white/5">
               <TH>N°</TH><TH>Adhérent</TH><TH>Téléphone</TH><TH>Type</TH>
               <TH>Début</TH><TH>Fin</TH><TH>Prix</TH><TH>Payé</TH><TH>Reste</TH>
-              <TH>Statut</TH><TH>Paiement</TH><TH>Actions</TH>
+              <TH>Statut</TH><TH>Paiement</TH><TH>Employé</TH><TH>Actions</TH>
             </tr>
           </thead>
           <tbody>
@@ -817,11 +823,19 @@ function Subscriptions() {
                 <td className="px-3 py-3 font-mono text-xs text-red-400">{s.remaining > 0 ? `${s.remaining} DH` : "—"}</td>
                 <td className="px-3 py-3"><Badge s={s.status} /></td>
                 <TD dim>{s.payment}</TD>
+                <TD dim>{s.updated_by || "—"}</TD>
                 <td className="px-3 py-3">
                   <ActionIcons
                     onEdit={() => openEditSubscription(s)}
                     onDelete={() => handleDeleteSubscription(s.id)}
-                    onPrint={() => window.alert("Imprimer contrat / reçu")}
+                    onPrint={() => {
+                      // Export CSV for this subscription
+                      downloadCSV([{
+                        id: s.id, member: s.member, phone: s.phone, type: s.type,
+                        start: s.start, end: s.end, price: s.price, paid: s.paid,
+                        remaining: s.remaining, status: s.status,
+                      }], `abonnement_${s.id}`);
+                    }}
                   />
                 </td>
               </TR>
