@@ -658,10 +658,15 @@ function Subscriptions() {
     payment: "Espèces", observation: "",
   });
   const [editForm, setEditForm] = useState(form);
+  // Cheque state
+  const [selectedCheque, setSelectedCheque] = useState<any>(null);
+  const [showChequeAdd, setShowChequeAdd] = useState(false);
+  const [chequeForm, setChequeForm] = useState({ chequeId: "", memberId: "", memberName: "", amount: 0, date: "", dateEcheance: "", photo: "", status: "En_attente" });
 
   // Load subscriptions from Supabase on mount
   const [memberNames, setMemberNames] = useState<{ id: string; name: string; phone: string }[]>([]);
   const [subEmployeeName, setSubEmployeeName] = useState(() => localStorage.getItem("stock_employee") || "");
+  const [members, setMembers] = useState<{ id: string; name: string }[]>([]);
 
   useEffect(() => {
     (async () => {
@@ -782,6 +787,18 @@ function Subscriptions() {
             const m = memberNames.find(x => x.name === name);
             setForm({ ...form, member: name, phone: m?.phone || "" });
           }}
+          chequeId={selectedCheque?.cheque_id}
+          onChequeSelect={setSelectedCheque}
+          chequeForm={chequeForm}
+          setChequeForm={setChequeForm}
+          showChequeAdd={showChequeAdd}
+          onOpenChequeAdd={() => setShowChequeAdd(true)}
+          onCloseChequeAdd={() => setShowChequeAdd(false)}
+          onSaveCheque={async () => {
+            const r = await boutiqueApi("cheque-create", chequeForm);
+            if (r?.cheque) { setSelectedCheque(r.cheque); setShowChequeAdd(false); }
+          }}
+          chequeMembers={members}
         />
       )}
       {showEdit && (

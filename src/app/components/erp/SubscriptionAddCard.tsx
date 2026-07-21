@@ -1,7 +1,9 @@
+import { useState, Dispatch, SetStateAction } from "react";
 import { CreditCard, User, Phone, Calendar, DollarSign, FileText } from "lucide-react";
-import { Dispatch, SetStateAction } from "react";
 import ModalCard from "../ui/ModalCard";
 import { InputField, SelectField, FormActions } from "../ui/FormField";
+import ChequeSelector from "../door/ChequeSelector";
+import ChequeAddCard from "../door/ChequeAddCard";
 
 type SubscriptionForm = {
   id: string; member: string; phone: string; type: string; start: string;
@@ -15,9 +17,18 @@ interface SubscriptionAddCardProps {
   onClose: () => void; onSave: () => void; members: string[]; subTypes: SubType[];
   updateType: (type: string) => void; updateStart: (value: string) => void; updatePaid: (value: number) => void;
   onMemberChange?: (name: string) => void;
+  onChequeSelect?: (cheque: any) => void;
+  chequeId?: string;
+  chequeForm?: any;
+  setChequeForm?: any;
+  showChequeAdd?: boolean;
+  onOpenChequeAdd?: () => void;
+  onCloseChequeAdd?: () => void;
+  onSaveCheque?: () => void;
+  chequeMembers?: { id: string; name: string }[];
 }
 
-export default function SubscriptionAddCard({ form, setForm, onClose, onSave, members, subTypes, updateType, updateStart, updatePaid, onMemberChange }: SubscriptionAddCardProps) {
+export default function SubscriptionAddCard({ form, setForm, onClose, onSave, members, subTypes, updateType, updateStart, updatePaid, onMemberChange, onChequeSelect, chequeId, chequeForm, setChequeForm, showChequeAdd, onOpenChequeAdd, onCloseChequeAdd, onSaveCheque, chequeMembers }: SubscriptionAddCardProps) {
   return (
     <ModalCard title="" onClose={onClose}>
       <div className="flex items-center gap-4 mb-6">
@@ -52,9 +63,18 @@ export default function SubscriptionAddCard({ form, setForm, onClose, onSave, me
             <InputField label="Prix (DH)" icon={DollarSign} type="number" value={form.price} onChange={v => setForm({ ...form, price: v as number, remaining: Math.max(0, (v as number) - form.paid) })} placeholder="Prix" />
             <InputField label="Montant payé" icon={DollarSign} type="number" value={form.paid} onChange={updatePaid} placeholder="Payé" />
             <InputField label="Reste" icon={DollarSign} value={form.remaining} onChange={() => {}} placeholder="Reste" readOnly />
-            <InputField label="Mode paiement" icon={CreditCard} value={form.payment} onChange={v => setForm({ ...form, payment: v as string })} placeholder="Espèces, Carte..." />
+            <SelectField label="Mode paiement" icon={CreditCard} value={form.payment} onChange={v => setForm({ ...form, payment: v })} options={[
+              { value: "Espèces", label: "Espèces" },
+              { value: "Chèque", label: "Chèque" },
+              { value: "Virement", label: "Virement" },
+            ]} />
           </div>
         </div>
+        {form.payment === "Chèque" && (
+          <div className="col-span-3">
+            <ChequeSelector selectedChequeId={chequeId || ""} onSelect={onChequeSelect || (() => {})} onCreateNew={onOpenChequeAdd || (() => {})} />
+          </div>
+        )}
         <div>
           <div className="flex items-center gap-2 mb-4">
             <FileText className="w-4 h-4 text-[#EA5800]" />
@@ -63,6 +83,9 @@ export default function SubscriptionAddCard({ form, setForm, onClose, onSave, me
           <InputField icon={FileText} value={form.observation} onChange={v => setForm({ ...form, observation: v as string })} placeholder="Observation" />
         </div>
       </div>
+      {showChequeAdd && chequeForm && setChequeForm && (
+        <ChequeAddCard form={chequeForm} setForm={setChequeForm} onClose={onCloseChequeAdd || (() => {})} onSave={onSaveCheque || (() => {})} members={chequeMembers || []} />
+      )}
       <FormActions onCancel={onClose} onSave={onSave} />
     </ModalCard>
   );
