@@ -1,0 +1,120 @@
+{
+  "connector": {
+    "id": "${CONNECTOR_ID:-GYM_PC_001}",
+    "logLevel": "${GDC_LOG_LEVEL:-info}",
+    "logMaxDays": "${GDC_LOG_MAX_DAYS:-14}"
+  },
+  "dedupe": {
+    "windowSeconds": "${GDC_DEDUP_WINDOW_SECONDS:-300}",
+    "maxKeys": 5000
+  },
+  "retry": {
+    "initialDelayMs": 1500,
+    "maxDelayMs": 600000,
+    "factor": 3,
+    "maxAttempts": 15,
+    "sweepIntervalMs": 2000
+  },
+  "webhook": {
+    "url": "${SUPABASE_WEBHOOK_URL:}",
+    "secret": "${ZKTECO_WEBHOOK_SECRET:}",
+    "timeoutMs": 15000,
+    "maxBodyBytes": 16384,
+    "acceptedStatusCodes": [200, 201, 202]
+  },
+  "accessControl": {
+    "allowedMethods": ["fingerprint"],
+    "allowedEventTypes": ["ACCESS", "CHECK_IN"],
+    "verifyModeMap": {
+      "1": "fingerprint",
+      "2": "face",
+      "3": "rfid",
+      "4": "qr",
+      "5": "password"
+    }
+  },
+  "sources": {
+    "cvaccessOpenApi": {
+      "enabled": true,
+      "pollIntervalMs": 3000,
+      "baseUrl": "${CVAACCESS_BASE_URL:}",
+      "auth": {
+        "mode": "tempCode",
+        "appCode": "${CVAACCESS_APP_CODE:}",
+        "appSecret": "${CVAACCESS_APP_SECRET:}",
+        "tempCode": "${CVAACCESS_TEMP_CODE:}",
+        "tempTokenEndpoint": "/api/token/temp",
+        "tokenEndpoint": "/api/token",
+        "tokenField": "accessToken",
+        "expiresInField": "expiresIn"
+      },
+      "eventFetch": {
+        "method": "POST",
+        "endpoint": "/api/att/getAttLogs",
+        "pageSize": "pageSize",
+        "pageNum": "pageNum",
+        "sinceParam": "startTime",
+        "endTimeParam": "endTime",
+        "sinceField": "recordTimeStr",
+        "dataPath": "data.list",
+        "maxPages": 10
+      },
+      "mapping": {
+        "deviceId": "sn",
+        "userId": "employeeNo",
+        "timestamp": "recordTimeStr",
+        "method": "verifyType",
+        "eventType": "event",
+        "eventId": "id"
+      },
+      "staticFields": {
+        "source": "cvaccess-openapi"
+      }
+    },
+    "cvaccessPush": {
+      "enabled": false,
+      "scheme": "http",
+      "listenHost": "127.0.0.1",
+      "listenPort": 8091,
+      "maxBodyBytes": 131072,
+      "captureFirst": true,
+      "mapping": {
+        "deviceId": "sn",
+        "userId": "userId",
+        "timestamp": "timestamp",
+        "method": "verifyMode",
+        "eventType": "eventType",
+        "eventId": "eventId"
+      }
+    },
+    "cvaccessDb": {
+      "enabled": false,
+      "pollIntervalMs": 5000,
+      "sqlcmdPath": "sqlcmd",
+      "server": "${CVACCESS_DB_SERVER:}",
+      "database": "${CVACCESS_DB_NAME:}",
+      "user": "${CVACCESS_DB_USER:}",
+      "password": "${CVACCESS_DB_PASS:}",
+      "trustedConnection": true,
+      "query": "${CVACCESS_DB_QUERY:}",
+      "sinceField": "auto_id",
+      "mapping": {
+        "deviceId": "terminalid",
+        "userId": "userid",
+        "timestamp": "recordtime",
+        "method": "verifymode",
+        "eventType": "eventType",
+        "eventId": "auto_id"
+      },
+      "eventFields": {
+        "source": "cvaccess-db"
+      }
+    },
+    "mockFingerprint": {
+      "enabled": false,
+      "intervalMs": 10000,
+      "users": ["ADH001"],
+      "deviceId": "TERMINAL_001"
+    }
+  }
+}

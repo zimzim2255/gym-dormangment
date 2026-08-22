@@ -1,0 +1,8 @@
+.env
+.env.local
+config/config.json
+data/
+logs/
+node_modules/
+*.log
+nssm.exe

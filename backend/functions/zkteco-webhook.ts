@@ -18,12 +18,17 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 // This matches what the SenseFace 3A terminal sends over HTTP
 
 interface ZKTecoPushEvent {
-  serialNumber: string;      // Terminal serial (e.g. "TERMINAL_001")
-  eventType: "CHECK_IN";     // Always CHECK_IN for door access
-  userId: string;            // User ID from terminal DB (e.g. "ADH001")
-  verifyMode: number;        // 1=Fingerprint, 2=Face, 3=RFID, 4=QR, 5=Password
-  timestamp: string;         // ISO datetime of the scan
-  confidence?: number;       // Recognition confidence % (0-100)
+  serialNumber?: string;      // Terminal serial (e.g. "TERMINAL_001")
+  eventType: string;          // "CHECK_IN" | "ACCESS" | ...
+  userId: string;             // User ID from terminal DB (e.g. "ADH001")
+  verifyMode?: number;        // 1=Fingerprint, 2=Face, 3=RFID, 4=QR, 5=Password
+  timestamp: string;          // ISO datetime of the scan
+  confidence?: number;        // Recognition confidence % (0-100)
+  // ─── GymDoorConnector normalized payload (optional aliases) ──────────
+  connectorId?: string;       // e.g. "GYM_PC_001"
+  deviceId?: string;          // terminal device id (alias for serialNumber)
+  method?: string;            // "fingerprint" | "face" | ... (alias for verifyMode)
+  eventId?: string;           // idempotency key - echoed back in the response
 }
 
 const VERIFY_MODE_MAP: Record<number, string> = {
@@ -40,10 +45,34 @@ serve(async (req: Request) => {
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
   );
 
-  const generateSessionId = (userId: string, serial: string): string => {
+  // ─── Optional Bearer authentication ────────────────────────────────────
+  // Keys checked (choose any that Supabase allows; avoids the reserved
+  // "SUPABASE_" prefix restriction on the secret store):
+  //   ZKTECO_WEBHOOK_SECRET, WEBHOOK_SECRET, GYM_DOOR_SECRET,
+  //   SUPABASE_WEBHOOK_SECRET (legacy/backward-compat)
+  const webhookSecret =
+    Deno.env.get("ZKTECO_WEBHOOK_SECRET") ||
+    Deno.env.get("WEBHOOK_SECRET") ||
+    Deno.env.get("GYM_DOOR_SECRET") ||
+    Deno.env.get("SUPABASE_WEBHOOK_SECRET");
+  if (webhookSecret) {
+    const auth = req.headers.get("authorization") || "";
+    if (auth !== `Bearer ${webhookSecret}`) {
+      return new Response(JSON.stringify({
+        decision: "UNAUTHORIZED",
+        message: "Missing or invalid Authorization header",
+        eventId: null,
+      }), {
+        status: 401,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+  }
+
+  const generateSessionId = (userId: string, serial: string | undefined): string => {
     const ts = Date.now();
     const rand = Math.random().toString(36).substring(2, 6);
-    return `sess_${ts}_${serial}_${userId}_${rand}`;
+    return `sess_${ts}_${serial ?? "?"}_${userId}_${rand}`;
   };
 
   try {
@@ -67,6 +96,23 @@ serve(async (req: Request) => {
     }
 
     const startTime = performance.now();
+
+    // ─── Normalize connector payload into the internal event shape ─────────
+    // Accept BOTH the raw ZKTeco PUSH keys (serialNumber / verifyMode) and the
+    // GymDoorConnector normalized keys (deviceId / method).
+    if (!body.serialNumber && body.deviceId) body.serialNumber = body.deviceId;
+    if (!body.serialNumber) body.serialNumber = "UNKNOWN_TERMINAL";
+    if (typeof body.method === "string" && body.method.trim() !== "" && !body.verifyMode) {
+      const m = body.method.toLowerCase().trim();
+      if (m === "fingerprint" || m === "fp") body.verifyMode = 1;
+      else if (m === "face") body.verifyMode = 2;
+      else if (m === "rfid" || m === "card" || m === "ic") body.verifyMode = 3;
+      else if (m === "qr") body.verifyMode = 4;
+      else if (m === "password" || m === "pin") body.verifyMode = 5;
+      else body.verifyMode = 0;
+    }
+    if (!body.verifyMode) body.verifyMode = 1; // fingerprint default
+
     const sessionId = generateSessionId(body.userId, body.serialNumber);
     const method = VERIFY_MODE_MAP[body.verifyMode] || "fingerprint";
 
@@ -80,13 +126,13 @@ serve(async (req: Request) => {
     if (memberError || !member) {
       const msg = "Membre introuvable dans le système";
       await logDenied(supabase, sessionId, body, method, msg);
-      return respond(sessionId, "DENIED", msg, startTime);
+      return respond(sessionId, "DENIED", msg, startTime, body.eventId);
     }
 
     if (member.status !== "Actif") {
       const msg = "Compte suspendu";
       await logDenied(supabase, sessionId, body, method, msg);
-      return respond(sessionId, "DENIED", msg, startTime);
+      return respond(sessionId, "DENIED", msg, startTime, body.eventId);
     }
 
     // ─── Step 2: Find active subscription ────────────────────────────
@@ -101,7 +147,7 @@ serve(async (req: Request) => {
     if (!subscription) {
       const msg = "Aucun abonnement trouvé";
       await logDenied(supabase, sessionId, body, method, msg);
-      return respond(sessionId, "DENIED", msg, startTime);
+      return respond(sessionId, "DENIED", msg, startTime, body.eventId);
     }
 
     // ─── Step 3: Check subscription date range ───────────────────────
@@ -120,7 +166,7 @@ serve(async (req: Request) => {
     if (!startDate || !endDate) {
       const msg = "Erreur de configuration d'abonnement";
       await logDenied(supabase, sessionId, body, method, msg);
-      return respond(sessionId, "DENIED", msg, startTime);
+      return respond(sessionId, "DENIED", msg, startTime, body.eventId);
     }
 
     // Normalize dates to compare without time
@@ -129,20 +175,20 @@ serve(async (req: Request) => {
     if (todayNorm < startDate) {
       const msg = "Abonnement pas encore actif";
       await logDenied(supabase, sessionId, body, method, msg);
-      return respond(sessionId, "DENIED", msg, startTime);
+      return respond(sessionId, "DENIED", msg, startTime, body.eventId);
     }
 
     if (todayNorm > endDate) {
       const msg = "Abonnement expiré";
       await logDenied(supabase, sessionId, body, method, msg);
-      return respond(sessionId, "DENIED", msg, startTime);
+      return respond(sessionId, "DENIED", msg, startTime, body.eventId);
     }
 
     // ─── Step 4: Check payment status ────────────────────────────────
     if (subscription.sub_status === "Non payé") {
       const msg = "Abonnement non payé";
       await logDenied(supabase, sessionId, body, method, msg);
-      return respond(sessionId, "DENIED", msg, startTime);
+      return respond(sessionId, "DENIED", msg, startTime, body.eventId);
     }
 
     // ─── Step 5: GRANTED (with optional partial payment warning) ─────
@@ -186,7 +232,7 @@ serve(async (req: Request) => {
       method,
     });
 
-    return respond(sessionId, decision, message, startTime);
+    return respond(sessionId, decision, message, startTime, body.eventId);
 
   } catch (error) {
     console.error("Webhook error:", error);
@@ -203,11 +249,18 @@ serve(async (req: Request) => {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function respond(sessionId: string, decision: string, message: string, startTime: number) {
+function respond(
+  sessionId: string,
+  decision: string,
+  message: string,
+  startTime: number,
+  eventId?: string
+) {
   return new Response(JSON.stringify({
     sessionId,
     decision,
     message,
+    eventId: eventId || sessionId,
     executionTime: `${Math.round(performance.now() - startTime)}ms`,
   }), {
     headers: { "Content-Type": "application/json" },
@@ -215,11 +268,11 @@ function respond(sessionId: string, decision: string, message: string, startTime
 }
 
 async function logDenied(supabase: any, sessionId: string, event: ZKTecoPushEvent, method: string, message: string) {
-  const methodLabel = VERIFY_MODE_MAP[event.verifyMode] || "unknown";
+  const methodLabel = VERIFY_MODE_MAP[event.verifyMode || 1] || "unknown";
   await supabase.from("access_sessions").insert({
     session_id: sessionId,
     member_id: event.userId,
-    device_id: event.serialNumber,
+    device_id: event.serialNumber || "UNKNOWN_TERMINAL",
     method,
     status: "denied",
     decision: "DENIED",

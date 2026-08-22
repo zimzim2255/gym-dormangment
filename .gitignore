@@ -6,3 +6,11 @@ dist/
 .env.local
 .DS_Store
 *.log
+
+# GymDoorConnector (connector/)
+connector/.env
+connector/config/config.json
+connector/data/
+connector/logs/
+connector/bin/
+connector/tools/cvaccess-report.json

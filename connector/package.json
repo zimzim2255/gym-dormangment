@@ -1,0 +1,19 @@
+{
+  "name": "gymdoor-connector",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Gym access-control connector: watches ZKBio CVAccess fingerprint events on the gym PC and validates them against the Supabase zkteco-webhook. Zero runtime dependencies.",
+  "type": "commonjs",
+  "main": "src/main.js",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "scripts": {
+    "start": "node src/main.js serve",
+    "serve": "node src/main.js serve",
+    "health": "node src/main.js health",
+    "status": "node src/main.js status",
+    "test": "node --test test/"
+  },
+  "license": "UNLICENSED"
+}
