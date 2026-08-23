@@ -79,12 +79,12 @@
       "maxBodyBytes": 131072,
       "captureFirst": true,
       "mapping": {
-        "deviceId": "sn",
-        "userId": "userId",
-        "timestamp": "timestamp",
-        "method": "verifyMode",
-        "eventType": "eventType",
-        "eventId": "eventId"
+        "deviceId": "deviceSn",
+        "userId": "reId",
+        "timestamp": "eventTime",
+        "method": "verifyType",
+        "eventType": "eventName",
+        "eventId": "id"
       }
     },
     "cvaccessDb": {

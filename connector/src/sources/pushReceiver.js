@@ -157,7 +157,13 @@ class PushReceiver {
       }
 
       const parsed = ParseBody(req.headers['content-type'] || '', buf);
-      const records = Array.isArray(parsed) ? parsed : [parsed];
+      // CVAccess cloud push envelope: { payload: { transactions: [...] }, sid }
+      let records;
+      if (parsed && Array.isArray(parsed.payload?.transactions)) {
+        records = parsed.payload.transactions;
+      } else {
+        records = Array.isArray(parsed) ? parsed : [parsed];
+      }
       for (const item of records) {
         if (!item || typeof item !== 'object') continue;
         const out = normalizeEvent(

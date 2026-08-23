@@ -134,6 +134,51 @@ serve(async (req: Request) => {
         return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
 
+      case "prices-list": {
+        // Get subscription type prices (Tarifs des abonnements) from the DB
+        const { data, error } = await supabase
+          .from("subscription_types")
+          .select("*")
+          .order("code");
+        if (error) throw error;
+
+        const prices = (data || []).map((p: any) => ({
+          code: p.code,
+          name: p.name,
+          duration: p.duration,
+          price: Number(p.price),
+          desc: p.description,
+          status: p.status,
+        }));
+
+        return new Response(JSON.stringify({ prices }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+
+      case "prices-update": {
+        // Save subscription prices (from Paramètres → Tarifs des abonnements)
+        const list = Array.isArray(body.prices) ? body.prices : (body.subscription_types || []);
+        if (list.length === 0) {
+          return new Response(JSON.stringify({ error: "Missing prices" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        }
+
+        for (const item of list) {
+          const { error: upsertError } = await supabase
+            .from("subscription_types")
+            .upsert({
+              code: item.code,
+              name: item.name,
+              duration: item.duration,
+              price: Number(item.price) || 0,
+              description: item.desc ?? item.description ?? "",
+              status: item.status ?? "Actif",
+              updated_at: new Date().toISOString(),
+            }, { onConflict: "code" });
+          if (upsertError) throw upsertError;
+        }
+
+        return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+
       case "reminder-trigger": {
         // Manually trigger the reminder check (calls the subscription-reminder function)
         const reminderUrl = Deno.env.get("SUPABASE_URL") + "/functions/v1/subscription-reminder";

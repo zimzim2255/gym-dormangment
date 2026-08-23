@@ -31,6 +31,7 @@ import AccessControlPanel from "./components/door/AccessControlPanel";
 import CaissePanel from "./components/door/CaissePanel";
 import ChequePanel from "./components/door/ChequePanel";
 import { getAccessLogs } from "./services/doorService";
+import { getSubscriptionPrices, saveSubscriptionPrices, SubType } from "./services/subscriptionService";
 import ExpenseEditCard from "./components/erp/ExpenseEditCard";
 import MemberDetailCard from "./components/erp/MemberDetailCard";
 
@@ -667,12 +668,21 @@ function Subscriptions() {
   const [memberNames, setMemberNames] = useState<{ id: string; name: string; phone: string }[]>([]);
   const [subEmployeeName, setSubEmployeeName] = useState(() => localStorage.getItem("stock_employee") || "");
   const [members, setMembers] = useState<{ id: string; name: string }[]>([]);
+  const [subTypes, setSubTypes] = useState<SubType[]>([]);
 
   useEffect(() => {
     (async () => {
-      const [subData, memberData] = await Promise.all([subApi("list"), api("list")]);
+      const [subData, memberData, prices] = await Promise.all([subApi("list"), api("list"), getSubscriptionPrices()]);
       if (subData?.subscriptions) setSubscriptions(subData.subscriptions);
       if (memberData?.members) setMemberNames(memberData.members.map((m: any) => ({ id: m.id, name: m.name, phone: m.phone || "" })));
+      if (prices?.length) {
+        setSubTypes(prices);
+        // Keep the default "Mensuel" price in sync with the real catalogue
+        const mensuel = prices.find(t => t.name === "Mensuel");
+        if (mensuel) {
+          setForm(f => ({ ...f, price: mensuel.price, remaining: Math.max(0, mensuel.price - f.paid) }));
+        }
+      }
       // Auto-detect employee
       if (!localStorage.getItem("stock_employee")) {
         const staffData = await boutiqueApi("staff-list");
@@ -690,7 +700,8 @@ function Subscriptions() {
   );
 
   const updateSubscriptionType = (type: string, current: typeof form, setter: typeof setForm) => {
-    const selected = SUB_TYPES_DATA.find(t => t.name === type);
+    const catalogue = subTypes.length ? subTypes : SUB_TYPES_DATA;
+    const selected = catalogue.find(t => t.name === type);
     const end = computeEndDate(current.start, type);
     const price = selected?.price ?? current.price;
     const remaining = Math.max(0, price - current.paid);
@@ -779,7 +790,7 @@ function Subscriptions() {
           onClose={() => setShowAdd(false)}
           onSave={addSubscription}
           members={memberNames.map(m => m.name)}
-          subTypes={SUB_TYPES_DATA}
+          subTypes={subTypes.length ? subTypes : SUB_TYPES_DATA}
           updateType={type => updateSubscriptionType(type, form, setForm)}
           updateStart={start => updateSubscriptionStart(start, form, setForm)}
           updatePaid={paid => updateSubscriptionPaid(paid, form, setForm)}
@@ -808,7 +819,7 @@ function Subscriptions() {
           onClose={() => setShowEdit(false)}
           onSave={handleEditSubscription}
           members={MEMBERS.map(member => member.name)}
-          subTypes={SUB_TYPES_DATA}
+          subTypes={subTypes.length ? subTypes : SUB_TYPES_DATA}
           updateType={type => updateSubscriptionType(type, editForm, setEditForm)}
           updateStart={start => updateSubscriptionStart(start, editForm, setEditForm)}
           updatePaid={paid => updateSubscriptionPaid(paid, editForm, setEditForm)}
@@ -2117,7 +2128,34 @@ function RemindersPanel() {
 // ─── SETTINGS ─────────────────────────────────────────────────────────────────
 
 function SettingsView() {
-  const [prices, setPrices] = useState(SUB_TYPES_DATA.map(t => ({ ...t })));
+  const [prices, setPrices] = useState<SubType[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [saveError, setSaveError] = useState("");
+
+  // Load the real prices from the backend DB on mount
+  useEffect(() => {
+    (async () => {
+      const list = await getSubscriptionPrices();
+      setPrices(list.length ? [...list] : SUB_TYPES_DATA.map(t => ({ ...t })));
+      setLoading(false);
+    })();
+  }, []);
+
+  const handleSavePrices = async () => {
+    setSaving(true);
+    setSaveError("");
+    setSaved(false);
+    const ok = await saveSubscriptionPrices(prices);
+    setSaving(false);
+    if (ok) {
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3000);
+    } else {
+      setSaveError("Erreur lors de l'enregistrement. Vérifiez la connexion au serveur.");
+    }
+  };
 
   return (
     <div className="p-6 space-y-5 max-w-3xl">
@@ -2127,32 +2165,44 @@ function SettingsView() {
         <h3 className="font-semibold text-white mb-1">Tarifs des abonnements</h3>
         <p className="text-xs text-white/30 mb-4">Modifiez les prix sans toucher au reste du système</p>
         <div className="space-y-2.5">
-          {prices.map((t, i) => (
-            <div key={t.code} className="flex items-center gap-4 p-3 bg-white/3 rounded-lg">
-              <div className="w-14 font-mono text-xs text-[#f04e23]">{t.code}</div>
-              <div className="flex-1">
-                <div className="font-medium text-white text-sm">{t.name}</div>
-                <div className="text-xs text-white/25">{t.duration} — {t.desc}</div>
+          {loading ? (
+            <div className="p-4 text-sm text-white/30">Chargement des tarifs…</div>
+          ) : (
+            prices.map((t, i) => (
+              <div key={t.code} className="flex items-center gap-4 p-3 bg-white/3 rounded-lg">
+                <div className="w-14 font-mono text-xs text-[#f04e23]">{t.code}</div>
+                <div className="flex-1">
+                  <div className="font-medium text-white text-sm">{t.name}</div>
+                  <div className="text-xs text-white/25">{t.duration} — {t.desc}</div>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <input
+                    type="number"
+                    value={t.price}
+                    onChange={e => {
+                      const updated = [...prices];
+                      updated[i] = { ...updated[i], price: Number(e.target.value) };
+                      setPrices(updated);
+                    }}
+                    className="w-20 px-2 py-1 bg-white/5 border border-white/10 rounded text-sm text-white font-mono text-right focus:outline-none focus:border-[#f04e23]/40"
+                  />
+                  <span className="text-xs text-white/30">DH</span>
+                </div>
+                <Badge s={t.status} />
               </div>
-              <div className="flex items-center gap-1.5">
-                <input
-                  type="number"
-                  value={t.price}
-                  onChange={e => {
-                    const updated = [...prices];
-                    updated[i] = { ...updated[i], price: Number(e.target.value) };
-                    setPrices(updated);
-                  }}
-                  className="w-20 px-2 py-1 bg-white/5 border border-white/10 rounded text-sm text-white font-mono text-right focus:outline-none focus:border-[#f04e23]/40"
-                />
-                <span className="text-xs text-white/30">DH</span>
-              </div>
-              <Badge s={t.status} />
-            </div>
-          ))}
+            ))
+          )}
         </div>
-        <div className="mt-4 flex justify-end">
-          <Btn variant="primary"><CheckCircle className="w-3.5 h-3.5" /> Sauvegarder les tarifs</Btn>
+        <div className="mt-4 flex justify-end items-center gap-3">
+          {saveError && <span className="text-xs text-red-400">{saveError}</span>}
+          {saved && <span className="text-xs text-emerald-400">Tarifs enregistrés ✓</span>}
+          <Btn variant="primary" onClick={handleSavePrices} disabled={saving || loading}>
+            {saving
+              ? <><RefreshCw className="w-3.5 h-3.5 animate-spin" /> Enregistrement…</>
+              : saved
+                ? <><CheckCircle className="w-3.5 h-3.5" /> Tarifs enregistrés</>
+                : <><CheckCircle className="w-3.5 h-3.5" /> Sauvegarder les tarifs</>}
+          </Btn>
         </div>
       </div>
 

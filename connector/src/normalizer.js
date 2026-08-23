@@ -96,11 +96,17 @@ function normalizeEvent(raw, cfg, sourceCfg, opts = {}) {
   const methodSrc = deepGet(raw, map.method !== undefined ? map.method : 'method');
   const method = normalizeMethod(methodSrc, cfg.accessControl?.verifyModeMap);
   if (!method || !allowedMethods.includes(method)) {
+    // Remote-open / admin events carry no verifyType -> treated as non-scan.
     return { filtered: true, reason: `method_not_allowed:${method || 'unknown'}` };
   }
 
+  // Any verified fingerprint scan is an access attempt, regardless of how
+  // CVAccess labels the event ("Fingerprint verify", "acc_eventNo_*", ...).
   const eventTypeSrc = deepGet(raw, map.eventType) ?? raw.eventType ?? 'ACCESS';
-  const eventType = String(eventTypeSrc).toUpperCase().trim() || 'ACCESS';
+  const eventTypeGuess = String(eventTypeSrc).toUpperCase().trim() || 'ACCESS';
+  const eventType = allowedMethods.includes(method) && !allowedTypes.includes(eventTypeGuess)
+    ? 'ACCESS'
+    : eventTypeGuess;
   if (!allowedTypes.includes(eventType)) {
     return { filtered: true, reason: `event_type_not_allowed:${eventType}` };
   }
