@@ -275,7 +275,7 @@ function ActionIcons({ onEdit, onDelete, onView, onPrint }: { onEdit?: () => voi
   );
 }
 
-// ─── DASHBOARD ────────────────────────────────────────────────────────────────
+// ─── DASHBOARD ───w─────────────────────────────────────────────────────────────
 
 const KPI_DATA = [
   { label: "Total adhérents", value: "156", sub: "+14 ce mois", Icon: Users, color: "text-blue-400", bg: "bg-blue-500/10" },
