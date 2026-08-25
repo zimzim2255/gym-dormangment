@@ -203,7 +203,7 @@ serve(async (req: Request) => {
     }
 
     // Log session
-    await supabase.from("access_sessions").insert({
+    const { error: sessErr } = await supabase.from("access_sessions").insert({
       session_id: sessionId,
       member_id: member.id,
       device_id: body.serialNumber,
@@ -215,22 +215,24 @@ serve(async (req: Request) => {
       execution_time_ms: Math.round(performance.now() - startTime),
       confidence: body.confidence || null,
     });
+    if (sessErr) console.error("access_sessions insert error:", sessErr.message);
 
     // Log access entry
     const now = new Date();
-    await supabase.from("access_logs").insert({
+    const { error: logErr } = await supabase.from("access_logs").insert({
       session_id: sessionId,
       member_id: member.id,
       member_name: member.name,
       phone: member.phone || "",
       subscription_type: subscription.sub_type,
-      date: now.toLocaleDateString("fr-FR"),
-      time: now.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }),
+      date: now.toISOString().slice(0, 10),
+      time: now.toTimeString().slice(0, 8),
       status,
       remaining: subscription.remaining || 0,
       device: body.serialNumber,
       method,
     });
+    if (logErr) console.error("access_logs insert error:", logErr.message);
 
     return respond(sessionId, decision, message, startTime, body.eventId);
 
@@ -269,7 +271,7 @@ function respond(
 
 async function logDenied(supabase: any, sessionId: string, event: ZKTecoPushEvent, method: string, message: string) {
   const methodLabel = VERIFY_MODE_MAP[event.verifyMode || 1] || "unknown";
-  await supabase.from("access_sessions").insert({
+  const { error: sessErr } = await supabase.from("access_sessions").insert({
     session_id: sessionId,
     member_id: event.userId,
     device_id: event.serialNumber || "UNKNOWN_TERMINAL",
@@ -281,19 +283,21 @@ async function logDenied(supabase: any, sessionId: string, event: ZKTecoPushEven
     execution_time_ms: 0,
     confidence: event.confidence || null,
   });
+  if (sessErr) console.error("access_sessions insert error:", sessErr.message);
   const now = new Date();
-  await supabase.from("access_logs").insert({
+  const { error: logErr } = await supabase.from("access_logs").insert({
     session_id: sessionId,
     member_id: event.userId,
     member_name: event.userId,
     phone: "",
     subscription_type: "—",
-    date: now.toLocaleDateString("fr-FR"),
-    time: now.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }),
+    date: now.toISOString().slice(0, 10),
+    time: now.toTimeString().slice(0, 8),
     status: "Refusé",
     remaining: 0,
-    device: event.serialNumber,
+    device: event.serialNumber || "UNKNOWN_TERMINAL",
     method,
   });
+  if (logErr) console.error("access_logs insert error:", logErr.message);
   console.log(`🚫 DENIED: ${event.userId} via ${methodLabel} on ${event.serialNumber} - ${message}`);
 }

@@ -50,6 +50,7 @@ CREATE TABLE IF NOT EXISTS access_logs (
   member_id VARCHAR(50) NOT NULL,
   member_name VARCHAR(100) NOT NULL,
   phone VARCHAR(20),
+  subscription_type VARCHAR(50),
   method VARCHAR(20) NOT NULL,
   device VARCHAR(50) NOT NULL,
   date DATE NOT NULL DEFAULT CURRENT_DATE,
@@ -60,6 +61,23 @@ CREATE TABLE IF NOT EXISTS access_logs (
 );
 CREATE INDEX IF NOT EXISTS idx_access_logs_date ON access_logs(date DESC);
 CREATE INDEX IF NOT EXISTS idx_access_logs_member ON access_logs(member_id);
+
+-- ─── Access Sessions (webhook writes here for the audit trail) ─────────────
+CREATE TABLE IF NOT EXISTS access_sessions (
+  session_id VARCHAR(255) PRIMARY KEY,
+  member_id VARCHAR(50),
+  device_id VARCHAR(50),
+  method VARCHAR(20),
+  status VARCHAR(20),
+  decision VARCHAR(30),
+  decision_message TEXT,
+  remaining_amount NUMERIC(10,2) DEFAULT 0,
+  execution_time_ms INTEGER DEFAULT 0,
+  confidence NUMERIC(7,2),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_access_sessions_member ON access_sessions(member_id);
+CREATE INDEX IF NOT EXISTS idx_access_sessions_created ON access_sessions(created_at DESC);
 
 -- ─── Seed Data ──────────────────────────────────────────────────────────────
 INSERT INTO door_terminals (terminal_id, model, ip_address, port, location, is_online) VALUES

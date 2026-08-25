@@ -56,11 +56,11 @@ serve(async (req: Request) => {
       }
 
       case "get-stats": {
-        const today = new Date().toLocaleDateString("fr-FR");
+        const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
         const [total, authorized, denied, pending, terminals] = await Promise.all([
           supabase.from("access_logs").select("*", { count: "exact", head: true }).eq("date", today),
           supabase.from("access_logs").select("*", { count: "exact", head: true }).eq("date", today).eq("status", "Autorisé"),
-          supabase.from("access_logs").select("*", { count: "exact", head: true }).eq("date", today).eq("status", "Expiré"),
+          supabase.from("access_logs").select("*", { count: "exact", head: true }).eq("date", today).in("status", ["Expiré", "Refusé"]),
           supabase.from("access_logs").select("*", { count: "exact", head: true }).eq("date", today).eq("status", "Paiement restant"),
           supabase.from("door_terminals").select("*", { count: "exact", head: true }).eq("is_online", true),
         ]);
