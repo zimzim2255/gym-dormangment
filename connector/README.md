@@ -232,7 +232,27 @@ The existing `zkteco-webhook` edge function (both `backend/functions` and
 - responds `{ "decision": "GRANTED"|"DENIED", "message": …, "eventId": … }`,
   echoing the event id for connector-side idempotency.
 
-## 8. Door relay / online authorization – honest status
+## 8. Auto-start on boot (Windows-native, no extra software)
+
+On the gym PC, run **once** to make the connector start every time Windows
+starts (using only built-in **Task Scheduler** — no NSSM download, no risky
+registry edits; it runs hidden, with no window):
+
+```powershell
+cd C:\connector
+.\autostart.ps1          # self-elevates; creates a "GymDoorConnector" scheduled task
+```
+
+- Starts the connector **at every logon**, **hidden**, and **restarts it if it
+  stops** (Task Scheduler RestartCount).
+- Verify it's running: `node src\main.js status` (should show `running: YES`).
+- To stop auto-starting: `.\disable-autostart.ps1`.
+
+> Alternative manual way (Windows Settings, no script): press `Win+R`, type
+> `shell:startup`, paste a shortcut to
+> `C:\connector\tools\run-hidden.vbs` into that folder. Also native, no admin.
+
+## 9. Door relay / online authorization – honest status
 
 **We do not claim the door-control (relay) part works.** The SenseFace 3A is
 managed by CVAccess/ADMS itself; in the standard ADMS + external cloud
@@ -251,7 +271,7 @@ real-time cloud-based relay control, that must be validated on-site with the
 actual SenseFace firmware/SDK variant — we will not fake an unverifiable
 integration.
 
-## 8. Rollout checklist (gym PC, over AnyDesk)
+## 10. Rollout checklist (gym PC, over AnyDesk)
 
 1. Copy the `connector\` folder onto the gym PC.
 2. `node --version` — install Node if missing.
@@ -263,7 +283,7 @@ integration.
 7. `.\install.ps1`, `.\start.ps1`, `.\status.ps1`.
 8. Live fingerprint at the door → confirm a GRANTED/DENIED log line.
 
-## 10. Troubleshooting
+## 11. Troubleshooting
 
 | Symptom | Fix |
 |---------|-----|
@@ -273,7 +293,7 @@ integration.
 | duplicates in dashboards | keep the 5-min dedupe window or add a UNIQUE constraint on `event_id` |
 | service keeps stopping | check `logs\service-err.log`; connector is crash-restartable by design |
 
-## 11. Layout
+## 12. Layout
 
 ```
 connector/
