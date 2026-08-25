@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 
 import {
   LayoutDashboard, Users, CreditCard, Shield, Clock, Package,
@@ -298,31 +298,99 @@ const tooltipStyle = {
 };
 
 function Dashboard() {
+  const [kpi, setKpi] = useState<any>(null);
+  const [revenueData, setRevenueData] = useState<any[]>([]);
+  const [newMembersData, setNewMembersData] = useState<any[]>([]);
+  const [entriesData, setEntriesData] = useState<any[]>([]);
+  const [salesChartData, setSalesChartData] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchData = useCallback(async () => {
+    try {
+      const res = await fetch(`${FUNCTIONS_URL}/dashboard-stats`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}` },
+        body: JSON.stringify({}),
+      });
+      if (!res.ok) throw new Error("stats error");
+      const data = await res.json();
+      if (data.kpi) setKpi(data.kpi);
+
+      // Revenue vs Expenses chart (revenueSeries/expenseSeries objects → array {month, rev, exp})
+      const months = data.months || [];
+      const rev = data.revenueSeries || {};
+      const exp = data.expenseSeries || {};
+      setRevenueData(months.map((m: any) => ({ month: m.month, rev: rev[m.key] || 0, exp: exp[m.key] || 0 })));
+
+      // New members chart - derive monthly by created_at (best-effort: 0 for now / real from members count)
+      setNewMembersData(months.map((m: any) => ({ month: m.month, val: 0 })));
+
+      // Entries per day
+      setEntriesData(data.entriesSeries || []);
+
+      // Sales chart
+      setSalesChartData(months.map((m: any) => ({ month: m.month, val: rev[m.key] || 0 })));
+    } catch {
+      // fallback: leave mock if fetch fails
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchData();
+    const t = setInterval(fetchData, 20000);
+    return () => clearInterval(t);
+  }, [fetchData]);
+
+  const k = kpi || {};
+  const totalMembers = k.totalMembers ?? KPI_DATA[0].value;
+  const activeMembers = k.activeMembers ?? KPI_DATA[1].value;
+  const expiredSubscriptions = k.expiredSubscriptions ?? KPI_DATA[2].value;
+  const expiringToday = k.expiringToday ?? KPI_DATA[3].value;
+  const salesToday = `${Number(k.salesTodayTotal || 0).toLocaleString()} DH`;
+  const monthlyRevenue = `${Number(k.monthlyRevenue || 0).toLocaleString()} DH`;
+  const monthlyExpenses = `${Number(k.monthlyExpenses || 0).toLocaleString()} DH`;
+  const netProfit = `${Number(k.netProfit || 0).toLocaleString()} DH`;
+  const entriesToday = k.entriesToday ?? 0;
+
   return (
     <div className="p-6 space-y-5">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-bold text-white">Tableau de bord</h1>
-          <p className="text-white/30 text-xs mt-0.5 font-mono">Mardi 15 juillet 2025 — SportGym ERP</p>
+          <p className="text-white/30 text-xs mt-0.5 font-mono">
+            {new Date().toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" })} — SportGym ERP
+          </p>
         </div>
         <div className="flex items-center gap-2">
           <button className="relative p-2 rounded bg-white/5 hover:bg-white/10 border border-white/10 transition-colors">
             <Bell className="w-4 h-4 text-white/40" />
             <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-[#f04e23]" />
           </button>
-          <Btn variant="primary"><RefreshCw className="w-3.5 h-3.5" /> Actualiser</Btn>
+          <Btn variant="primary" onClick={fetchData}><RefreshCw className="w-3.5 h-3.5" /> Actualiser</Btn>
         </div>
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
-        {KPI_DATA.map(k => (
-          <div key={k.label} className="bg-card border border-white/5 rounded-lg p-4 hover:border-white/10 transition-colors">
-            <div className={`w-8 h-8 rounded-md ${k.bg} flex items-center justify-center mb-3`}>
-              <k.Icon className={`w-4 h-4 ${k.color}`} />
+        {[
+          { label: "Total adhérents", value: totalMembers, sub: `${activeMembers} actifs`, Icon: Users, color: "text-blue-400", bg: "bg-blue-500/10" },
+          { label: "Adhérents actifs", value: activeMembers, sub: "Actuellement", Icon: Activity, color: "text-emerald-400", bg: "bg-emerald-500/10" },
+          { label: "Abonnements expirés", value: expiredSubscriptions, sub: "À renouveler", Icon: XCircle, color: "text-red-400", bg: "bg-red-500/10" },
+          { label: "Expirent aujourd'hui", value: expiringToday, sub: "Notifier maintenant", Icon: AlertTriangle, color: "text-amber-400", bg: "bg-amber-500/10" },
+          { label: "Paiements / ventes du jour", value: salesToday, sub: `${k.salesTodayCount || 0} transactions`, Icon: CreditCard, color: "text-violet-400", bg: "bg-violet-500/10" },
+          { label: "Revenus du mois", value: monthlyRevenue, sub: "Ce mois", Icon: TrendingUp, color: "text-[#f04e23]", bg: "bg-[#f04e23]/10" },
+          { label: "Dépenses du mois", value: monthlyExpenses, sub: "Loyer, salaires…", Icon: TrendingDown, color: "text-rose-400", bg: "bg-rose-500/10" },
+          { label: "Bénéfice net", value: netProfit, sub: "Revenus − dépenses", Icon: BadgeCheck, color: "text-emerald-400", bg: "bg-emerald-500/10" },
+          { label: "Entrées aujourd'hui", value: entriesToday, sub: "accès door", Icon: Scan, color: "text-cyan-400", bg: "bg-cyan-500/10" },
+        ].map(k2 => (
+          <div key={k2.label} className="bg-card border border-white/5 rounded-lg p-4 hover:border-white/10 transition-colors">
+            <div className={`w-8 h-8 rounded-md ${k2.bg} flex items-center justify-center mb-3`}>
+              <k2.Icon className={`w-4 h-4 ${k2.color}`} />
             </div>
-            <div className="font-mono text-lg font-bold text-white leading-tight">{k.value}</div>
-            <div className="text-xs text-white/35 font-medium mt-1 leading-snug">{k.label}</div>
-            <div className="text-xs text-white/20 mt-0.5">{k.sub}</div>
+            <div className="font-mono text-lg font-bold text-white leading-tight">{k2.value}</div>
+            <div className="text-xs text-white/35 font-medium mt-1 leading-snug">{k2.label}</div>
+            <div className="text-xs text-white/20 mt-0.5">{k2.sub}</div>
           </div>
         ))}
       </div>
