@@ -12,8 +12,9 @@ import { useState, useEffect, useCallback } from "react";
 import {
   Shield, Clock, Users, CheckCircle, XCircle, AlertTriangle,
   Wifi, WifiOff, RefreshCw, Activity, Fingerprint, Scan, QrCode, Smartphone,
+  Phone, CreditCard, Calendar, Mail, User as UserIcon, Wallet,
 } from "lucide-react";
-import { getDoorStats, getAccessLogs, getTerminals } from "../../services/doorService";
+import { getDoorStats, getAccessLogs, getTerminals, getLatestScan } from "../../services/doorService";
 
 const STATUS_STYLES: Record<string, string> = {
   "Autorisé": "bg-emerald-500/15 text-emerald-400 border border-emerald-500/20",
@@ -44,18 +45,21 @@ export default function AccessControlPanel() {
   const [stats, setStats] = useState({ totalToday: 0, authorizedToday: 0, deniedToday: 0, pendingPaymentsToday: 0, activeTerminals: 0 });
   const [logs, setLogs] = useState<any[]>([]);
   const [terminals, setTerminals] = useState<any[]>([]);
+  const [scan, setScan] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
 
   const fetchData = useCallback(async () => {
-    const [statsData, logsData, terminalsData] = await Promise.all([
+    const [statsData, logsData, terminalsData, scanData] = await Promise.all([
       getDoorStats(),
       getAccessLogs({ limit: 50 }),
       getTerminals(),
+      getLatestScan(),
     ]);
     if (statsData.stats) setStats(statsData.stats);
     if (logsData.logs) setLogs(logsData.logs);
     if (terminalsData.terminals) setTerminals(terminalsData.terminals);
+    if (scanData.scan) setScan(scanData.scan);
     setLastRefresh(new Date());
     setLoading(false);
   }, []);
@@ -66,8 +70,27 @@ export default function AccessControlPanel() {
     return () => clearInterval(interval);
   }, [fetchData]);
 
-  // Latest scan result (first log entry)
-  const latestLog = logs[0];
+  // Latest scan result (enriched via get-latest-scan, fallback to logs[0])
+  const latest = scan?.log ?? logs[0];
+  const member = scan?.member ?? null;
+  const subscription = scan?.subscription ?? null;
+  const sessionMsg = scan?.session?.decision_message ?? null;
+
+  const statusColor = (s?: string) =>
+    s === "Autorisé" ? "border-emerald-500 bg-emerald-500/10 text-emerald-400"
+    : s === "Paiement restant" ? "border-amber-500 bg-amber-500/10 text-amber-400"
+    : "border-red-500 bg-red-500/10 text-red-400";
+  const statusIcon = (s?: string) =>
+    s === "Autorisé" ? <CheckCircle className="w-6 h-6" />
+    : s === "Paiement restant" ? <AlertTriangle className="w-6 h-6" />
+    : <XCircle className="w-6 h-6" />;
+  const statusLabel = (s?: string) =>
+    s === "Autorisé" ? "ACCÈS AUTORISÉ"
+    : s === "Paiement restant" ? "Paiement requis"
+    : "ACCÈS REFUSÉ";
+  const paidPct = subscription && subscription.price > 0
+    ? Math.min(100, Math.round((subscription.paid / subscription.price) * 100))
+    : 0;
 
   return (
     <div className="p-6 space-y-5">
@@ -112,73 +135,165 @@ export default function AccessControlPanel() {
         {/* Latest Scan Result */}
         <div className="bg-card border border-white/5 rounded-lg p-6 flex flex-col">
           <div className="mb-4 flex items-center justify-between">
-            <h3 className="font-semibold text-white text-sm">Dernier scan</h3>
-            {latestLog && (
-              <span className="text-xs text-white/25 font-mono">{latestLog.time}</span>
-            )}
+            <div className="flex items-center gap-2">
+              <Fingerprint className="w-4 h-4 text-white/30" />
+              <h3 className="font-semibold text-white text-sm">Dernier scan</h3>
+            </div>
+            <span className="text-xs text-white/25 font-mono">
+              {latest ? `${latest.date ?? ""} · ${latest.time ?? ""}` : "—"}
+            </span>
           </div>
 
-          <div className="flex-1 flex flex-col items-center justify-center gap-4">
-            {/* Scanner Display */}
-            <div className={`w-40 h-40 rounded-2xl border-2 flex items-center justify-center transition-all duration-300 bg-[#080b12] ${
-              latestLog
-                ? latestLog.status === "Autorisé" ? "border-emerald-500"
-                  : latestLog.status === "Expiré" ? "border-red-500"
-                  : latestLog.status === "Paiement restant" ? "border-amber-500"
-                  : "border-red-500"
-                : "border-white/10"
-            }`}>
-              {latestLog ? (
-                <div className="flex flex-col items-center gap-2 px-4 text-center">
-                  {latestLog.status === "Autorisé"
-                    ? <CheckCircle className="w-10 h-10 text-emerald-400" />
-                    : latestLog.status === "Expiré" || latestLog.status === "Refusé"
-                    ? <XCircle className="w-10 h-10 text-red-400" />
-                    : <AlertTriangle className="w-10 h-10 text-amber-400" />
-                  }
-                  <span className={`text-xs font-bold font-mono ${
-                    latestLog.status === "Autorisé" ? "text-emerald-400"
-                    : latestLog.status === "Expiré" || latestLog.status === "Refusé" ? "text-red-400"
-                    : "text-amber-400"
-                  }`}>
-                    {latestLog.status === "Autorisé" ? "ACCÈS AUTORISÉ"
-                    : latestLog.status === "Paiement restant" ? "PAIEMENT REQUIS"
-                    : "ACCÈS REFUSÉ"}
-                  </span>
-                  <span className="text-[10px] text-white/20 font-mono">{latestLog.date}</span>
+          {latest ? (
+            <div className="flex-1 flex flex-col gap-6">
+              {/* 1. DECISION */}
+              <div className={`rounded-xl border px-5 py-4 flex items-center gap-4 ${statusColor(latest.status)}`}>
+                {statusIcon(latest.status)}
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-bold tracking-wide">{statusLabel(latest.status)}</div>
+                  {sessionMsg && (
+                    <div className="text-xs opacity-90 mt-1 leading-relaxed">{sessionMsg}</div>
+                  )}
                 </div>
-              ) : (
-                <div className="flex flex-col items-center gap-2 text-white/15">
-                  <Fingerprint className="w-10 h-10" />
-                  <span className="text-xs font-mono">En attente</span>
-                  <span className="text-[10px] text-white/10">Aucun scan récent</span>
-                </div>
-              )}
-            </div>
+                <Badge s={latest.status} />
+              </div>
 
-            {/* Member Info (if available) */}
-            {latestLog && (
-              <div className="w-full space-y-2">
-                <div className="flex items-center gap-2.5 bg-white/3 rounded-lg p-3">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 ${
-                    latestLog.status === "Autorisé" ? "bg-emerald-500/20 text-emerald-400"
-                    : latestLog.status === "Paiement restant" ? "bg-amber-500/20 text-amber-400"
-                    : "bg-red-500/20 text-red-400"
-                  }`}>
-                    {latestLog.member_name?.charAt(0) || "?"}
+              {/* 2. MEMBRE */}
+              <div className="bg-white/[0.03] rounded-xl p-5 space-y-4">
+                <div className="text-[11px] font-semibold uppercase tracking-widest text-white/40">
+                  Membre
+                </div>
+
+                <div className="flex items-center gap-4">
+                  <div className="w-16 h-16 rounded-full overflow-hidden flex-shrink-0 border border-white/10 bg-[#0a0d14]">
+                    {member?.photo ? (
+                      <img
+                        src={member.photo}
+                        alt={member?.name || "avatar"}
+                        className="w-full h-full object-cover"
+                        onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
+                      />
+                    ) : (
+                      <div className={`w-full h-full flex items-center justify-center text-xl font-bold ${
+                        latest.status === "Autorisé" ? "text-emerald-400"
+                        : latest.status === "Paiement restant" ? "text-amber-400"
+                        : "text-red-400"
+                      }`}>
+                        {(member?.name || latest.member_name || "?").charAt(0).toUpperCase()}
+                      </div>
+                    )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="text-sm font-medium text-white truncate">{latestLog.member_name || "Inconnu"}</div>
-                    <div className="text-xs text-white/30 flex items-center gap-1">
-                      <AuthIcon method={latestLog.method} />
-                      <span className="font-mono">{latestLog.method}</span>
+                    <div className="text-lg font-semibold text-white truncate">
+                      {member?.name || latest.member_name || "Membre inconnu"}
                     </div>
+                    <div className="text-xs text-white/35 font-mono">{latest.member_id}</div>
                   </div>
-                  <Badge s={latestLog.status} />
+                </div>
+
+                <div className="space-y-2 pt-2 border-t border-white/5">
+                  {member?.phone && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-white/40 flex items-center gap-2"><Phone className="w-3.5 h-3.5" /> Téléphone</span>
+                      <span className="text-sm text-white/90 font-mono">{member.phone}</span>
+                    </div>
+                  )}
+                  {member?.email && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-white/40 flex items-center gap-2"><Mail className="w-3.5 h-3.5" /> Email</span>
+                      <span className="text-sm text-white/90 font-mono truncate ml-4">{member.email}</span>
+                    </div>
+                  )}
+                  {member?.cin && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-white/40 flex items-center gap-2"><UserIcon className="w-3.5 h-3.5" /> CIN</span>
+                      <span className="text-sm text-white/90 font-mono">{member.cin}</span>
+                    </div>
+                  )}
                 </div>
               </div>
-            )}
-          </div>
+
+              {/* 3. ABONNEMENT */}
+              <div className="bg-white/[0.03] rounded-xl p-5 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="text-[11px] font-semibold uppercase tracking-widest text-white/40">
+                    Abonnement
+                  </div>
+                  {subscription && (
+                    <span className={`text-[11px] px-2 py-0.5 rounded-full font-mono ${
+                      subscription.sub_status === "Payé"
+                        ? "bg-emerald-500/10 text-emerald-400"
+                        : subscription.sub_status === "Paiement partiel"
+                        ? "bg-amber-500/10 text-amber-400"
+                        : "bg-red-500/10 text-red-400"
+                    }`}>
+                      {subscription.sub_status}
+                    </span>
+                  )}
+                </div>
+
+                {subscription ? (
+                  <>
+                    <div className="space-y-2.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-white/40">Type</span>
+                        <span className="text-sm text-white/90">{subscription.sub_type || "—"}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-white/40">Période</span>
+                        <span className="text-sm text-white/90 font-mono">{subscription.sub_start} → {subscription.sub_end}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-white/40">Prix</span>
+                        <span className="text-sm text-white/90 font-mono font-semibold">{subscription.price} DH</span>
+                      </div>
+                    </div>
+
+                    <div className="h-px bg-white/5" />
+
+                    <div className="space-y-2.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-white/40">Payé</span>
+                        <span className="text-sm text-emerald-400 font-mono font-semibold">{subscription.paid} DH</span>
+                      </div>
+                      {Number(subscription.remaining) > 0 && (
+                        <div className="flex items-center justify-between bg-red-500/10 rounded-lg px-3 py-2">
+                          <span className="text-xs text-red-300 font-semibold flex items-center gap-1.5">
+                            <AlertTriangle className="w-3.5 h-3.5" /> Reste à payer
+                          </span>
+                          <span className="text-sm text-red-400 font-mono font-bold">{subscription.remaining} DH</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Payment progress bar */}
+                    <div className="h-2 rounded-full bg-white/5 overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all ${paidPct >= 100 ? "bg-emerald-500" : "bg-red-500"}`}
+                        style={{ width: `${Math.max(4, paidPct)}%` }}
+                      />
+                    </div>
+                  </>
+                ) : (
+                  <div className="text-sm text-white/25 font-mono">Aucun abonnement</div>
+                )}
+              </div>
+
+              {/* 4. FOOTER */}
+              <div className="flex items-center justify-between text-[11px] text-white/35 font-mono pt-1">
+                <span className="flex items-center gap-1.5">
+                  <AuthIcon method={latest.method} /> {latest.method}
+                </span>
+                <span className="truncate ml-3">{latest.device}</span>
+              </div>
+            </div>
+          ) : (
+            <div className="flex-1 flex flex-col items-center justify-center gap-2 text-white/15">
+              <Fingerprint className="w-10 h-10" />
+              <span className="text-xs font-mono">En attente</span>
+              <span className="text-[10px] text-white/10">Aucun scan récent</span>
+            </div>
+          )}
         </div>
 
         {/* Access Logs Table */}

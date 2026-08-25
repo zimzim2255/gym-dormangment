@@ -26,6 +26,25 @@ export async function getAccessLogs(opts?: { dateFilter?: string; limit?: number
   }
 }
 
+// ─── Get Latest Scan (enriched: member photo + subscription + decision) ────
+
+export async function getLatestScan() {
+  try {
+    const res = await fetch(`${FUNCTIONS_URL}/door-management`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY || ""}`,
+      },
+      body: JSON.stringify({ type: "get-latest-scan" }),
+    });
+    if (res.ok) return await res.json();
+    throw new Error("Failed to fetch latest scan");
+  } catch {
+    return { scan: null };
+  }
+}
+
 // ─── Get Dashboard Stats ────────────────────────────────────────────────────
 
 export async function getDoorStats() {

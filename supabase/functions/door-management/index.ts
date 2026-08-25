@@ -69,6 +69,33 @@ serve(async (req: Request) => {
         }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
 
+      case "get-latest-scan": {
+        const { data: latest, error: latestErr } = await supabase
+          .from("access_logs")
+          .select("*")
+          .order("logged_at", { ascending: false })
+          .limit(1)
+          .single();
+        if (latestErr && latestErr.code !== "PGRST116") {
+          return new Response(JSON.stringify({ error: latestErr.message }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        }
+        if (!latest) {
+          return new Response(JSON.stringify({ scan: null }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        }
+        const [memberRes, subRes, sessionRes] = await Promise.all([
+          supabase.from("members").select("id,name,phone,email,cin,dob,photo,status").eq("id", latest.member_id).maybeSingle(),
+          supabase.from("subscriptions").select("*").eq("member_id", latest.member_id).order("sub_end", { ascending: false }).limit(1).maybeSingle(),
+          supabase.from("access_sessions").select("decision,decision_message").eq("session_id", latest.session_id).maybeSingle(),
+        ]);
+        const scan = {
+          log: latest,
+          member: memberRes.data ?? null,
+          subscription: subRes.data ?? null,
+          session: sessionRes.data ?? null,
+        };
+        return new Response(JSON.stringify({ scan }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+
       case "get-terminals": {
         const { data: terminals } = await supabase.from("door_terminals").select("*").order("created_at", { ascending: true });
         return new Response(JSON.stringify({ terminals }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
