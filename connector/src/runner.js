@@ -73,6 +73,7 @@ async start() {
     this.log.info('runner.start', {
       connectorId: this.connectorId,
       webhookConfigured: !!this.cfg.webhook.url,
+      webhookSecretSet: !!this.cfg.webhook.secret,
       version: require('../package.json').version,
     });
     this.sources = await startSources(

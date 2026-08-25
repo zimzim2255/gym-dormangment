@@ -94,9 +94,32 @@ function normalizeEvent(raw, cfg, sourceCfg, opts = {}) {
   if (!userId) return { filtered: true, reason: 'missing_user_id' };
 
   const methodSrc = deepGet(raw, map.method !== undefined ? map.method : 'method');
-  const method = normalizeMethod(methodSrc, cfg.accessControl?.verifyModeMap);
+  let method = normalizeMethod(methodSrc, cfg.accessControl?.verifyModeMap);
+
+  // CVAccess cloud push often omits verifyType for door-open transactions.
+  // Fallbacks (aligned with this deployment which uses fingerprint only):
+  //   1. faceRate > 0  -> a face match happened -> NOT allowed -> filter
+  //   2. event looks like a normal verification opening -> fingerprint
+  if (!method) {
+    const faceRate = raw.faceRate ?? raw.faceScore;
+    if (faceRate !== undefined && faceRate !== null && Number(faceRate) > 0) {
+      method = 'face';
+    } else {
+      const evName = String(deepGet(raw, map.eventType) ?? raw.eventName ?? '').toLowerCase();
+      const evKey = String(raw.eventNameKey ?? '');
+      const accentFree = evName.replace(/é/g, 'e').replace(/è/g, 'e').replace(/à/g, 'a');
+      const isVerification =
+        evName.includes('vérif') ||
+        evKey === 'acc_newEventNo_0' ||
+        accentFree.includes('verif') ||
+        accentFree.includes('normale');
+      const isRemoteOpen = evName.includes('distance') || accentFree.includes('distance');
+      if (isVerification && !isRemoteOpen) method = 'fingerprint';
+    }
+  }
+
   if (!method || !allowedMethods.includes(method)) {
-    // Remote-open / admin events carry no verifyType -> treated as non-scan.
+    // Remote-open / admin / face events are not treated as fingerprint scans.
     return { filtered: true, reason: `method_not_allowed:${method || 'unknown'}` };
   }
 
