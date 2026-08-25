@@ -955,20 +955,31 @@ function AccessHistory() {
   const [search, setSearch] = useState("");
   const [logs, setLogs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showAll, setShowAll] = useState(false);
+  const [page, setPage] = useState(0);
+  const PER_PAGE = 50;
 
   useEffect(() => {
     (async () => {
-      const data = await getAccessLogs({ limit: showAll ? 200 : 50 });
+      setLoading(true);
+      const data = await getAccessLogs({ limit: 500 }); // fetch up to 500, paginate client-side
       if (data.logs) setLogs(data.logs);
       setLoading(false);
     })();
-  }, [showAll]);
+  }, []);
 
-  const filtered = logs.filter((a: any) =>
-    a.member_name?.toLowerCase().includes(search.toLowerCase()) ||
-    a.method?.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = logs.filter((a: any) => {
+    const q = search.toLowerCase();
+    return (
+      a.member_name?.toLowerCase().includes(q) ||
+      a.method?.toLowerCase().includes(q) ||
+      a.status?.toLowerCase().includes(q) ||
+      a.device?.toLowerCase().includes(q)
+    );
+  });
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PER_PAGE));
+  const safePage = Math.min(page, totalPages - 1);
+  const pageLogs = filtered.slice(safePage * PER_PAGE, safePage * PER_PAGE + PER_PAGE);
 
   return (
     <div className="p-6">
@@ -977,10 +988,7 @@ function AccessHistory() {
         count={logs.length}
         actions={
           <>
-            <SearchInput placeholder="Rechercher…" value={search} onChange={setSearch} />
-            <Btn onClick={() => setShowAll(!showAll)}>
-              {showAll ? "Récent" : "Tout"}
-            </Btn>
+            <SearchInput placeholder="Rechercher…" value={search} onChange={(v) => { setSearch(v); setPage(0); }} />
             <Btn onClick={() => downloadCSV(filtered, "acces")}>
               <Download className="w-3.5 h-3.5" /> Export
             </Btn>
@@ -1000,11 +1008,11 @@ function AccessHistory() {
               <tr>
                 <td colSpan={8} className="px-3 py-10 text-center text-white/20 text-sm">Chargement...</td>
               </tr>
-            ) : filtered.length === 0 ? (
+            ) : pageLogs.length === 0 ? (
               <tr>
                 <td colSpan={8} className="px-3 py-10 text-center text-white/20 text-sm">Aucun accès enregistré</td>
               </tr>
-            ) : filtered.map((a: any, i: number) => (
+            ) : pageLogs.map((a: any, i: number) => (
               <TR key={a.id || i} i={i}>
                 <TD mono dim>{a.date}</TD>
                 <td className="px-3 py-3 font-mono text-xs text-[#f04e23]">{a.time}</td>
@@ -1021,6 +1029,36 @@ function AccessHistory() {
           </tbody>
         </table>
       </div>
+
+      {/* Pagination */}
+      {filtered.length > PER_PAGE && (
+        <div className="mt-4 flex items-center justify-between bg-card border border-white/5 rounded-lg px-4 py-2.5">
+          <div className="text-xs text-white/40 font-mono">
+            {safePage * PER_PAGE + 1}–{Math.min(filtered.length, (safePage + 1) * PER_PAGE)} sur {filtered.length}
+          </div>
+          <div className="flex items-center gap-1.5">
+            <Btn variant="ghost" disabled={safePage === 0} onClick={() => setPage(safePage - 1)}>
+              Préc.
+            </Btn>
+            {Array.from({ length: totalPages }).slice(0, 10).map((_, pi) => (
+              <button
+                key={pi}
+                onClick={() => setPage(pi)}
+                className={`w-8 h-8 rounded-md text-xs font-mono transition-colors ${
+                  pi === safePage
+                    ? "bg-[#f04e23] text-white"
+                    : "bg-white/5 text-white/40 hover:bg-white/10 hover:text-white border border-white/10"
+                }`}
+              >
+                {pi + 1}
+              </button>
+            ))}
+            <Btn variant="ghost" disabled={safePage >= totalPages - 1} onClick={() => setPage(safePage + 1)}>
+              Suiv.
+            </Btn>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
