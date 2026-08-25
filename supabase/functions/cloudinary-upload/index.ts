@@ -34,10 +34,14 @@ serve(async (req: Request) => {
     const folder = Deno.env.get("CLOUDINARY_UPLOAD_FOLDER") || "gym-web-application";
     const timestamp = Math.round(Date.now() / 1000);
 
-    // Build signature
-    let toSign = `folder=${folder}&timestamp=${timestamp}`;
-    if (publicId) toSign += `&public_id=${publicId}`;
-    toSign += apiSecret;
+    // Build signature — Cloudinary requires parameters sorted ALPHABETICALLY
+    const params: Record<string, string> = {
+      folder,
+      timestamp: timestamp.toString(),
+    };
+    if (publicId) params["public_id"] = publicId;
+    const sortedKeys = Object.keys(params).sort();
+    const toSign = sortedKeys.map((k) => `${k}=${params[k]}`).join("&") + apiSecret;
 
     const signature = await crypto.subtle.digest("SHA-1", new TextEncoder().encode(toSign))
       .then(buf => Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, "0")).join(""));
