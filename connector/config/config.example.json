@@ -72,12 +72,12 @@
       }
     },
     "cvaccessPush": {
-      "enabled": false,
-      "scheme": "http",
+      "enabled": "${CVACCESS_PUSH_ENABLED:-true}",
+      "scheme": "${CVACCESS_PUSH_SCHEME:-http}",
       "listenHost": "127.0.0.1",
-      "listenPort": 8091,
+      "listenPort": "${CVACCESS_PUSH_PORT:-8091}",
       "maxBodyBytes": 131072,
-      "captureFirst": true,
+      "captureFirst": "${CVACCESS_PUSH_CAPTURE_FIRST:-true}",
       "mapping": {
         "deviceId": "deviceSn",
         "userId": "reId",
@@ -85,6 +85,9 @@
         "method": "verifyType",
         "eventType": "eventName",
         "eventId": "id"
+      },
+      "staticFields": {
+        "source": "cvaccess-push"
       }
     },
     "cvaccessDb": {

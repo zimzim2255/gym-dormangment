@@ -1,0 +1,18 @@
+Γ£ö dedupe drops repeats inside the window (0.8754ms)
+Γ£ö dedupe prunes expired keys (0.1795ms)
+Γ£ö dedupe persists and reloads window (2.2818ms)
+Γ£ö normalizes a fingerprint CVAccess record into the SDK payload (1.7147ms)
+Γ£ö filters non-fingerprint methods (face is not allowed here) (0.1642ms)
+Γ£ö filters records without a user id (0.0799ms)
+Γ£û filters non ACCESS event types when configured (1.0672ms)
+Γ£ö accepts string method "FingerPrint" and derives deterministic eventId (0.1918ms)
+Γ£ö sensitive fields never leak into the normalized payload (0.1406ms)
+{"ts":"2026-09-04T18:47:10.390Z","level":"warn","event":"source.started","connectorId":"TEST_CONN","name":"mock-fingerprint","warning":"DEV-ONLY synthetic source - disable in production"}
+{"ts":"2026-09-04T18:47:10.427Z","level":"error","event":"source.none_enabled","connectorId":"TEST_CONN","hint":"Enable at least one source in config/config.json (run tools/probe-cvaccess.ps1 first)."}
+Γ£ö full pipeline: mock fingerprint -> webhook GRANTED, no duplicates (55.3346ms)
+{"ts":"2026-09-04T18:47:10.429Z","level":"warn","event":"event.queued_for_retry","connectorId":"TEST_CONN","eventId":"mock-2","reason":"network error: read ECONNRESET","backoffInitialMs":1}
+{"ts":"2026-09-04T18:47:10.431Z","level":"warn","event":"event.queued_for_retry","connectorId":"TEST_CONN","reason":"webhook transient failure (503)","backoffInitialMs":1}
+{"ts":"2026-09-04T18:47:10.471Z","level":"error","event":"source.none_enabled","connectorId":"TEST_CONN","hint":"Enable at least one source in config/config.json (run tools/probe-cvaccess.ps1 first)."}
+Γ£ö retry path: transient webhook failure is queued then delivered via backoff (44.4222ms)
+{"ts":"2026-09-04T18:47:10.473Z","level":"error","event":"event.deadletter","connectorId":"TEST_CONN","reason":"webhook rejected (400)","http":400}
+Γ£ö dead-letter path: webhook 400 is not retried (31.6017ms)

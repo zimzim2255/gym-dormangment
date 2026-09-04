@@ -20,5 +20,5 @@ CREATE INDEX IF NOT EXISTS idx_reminder_logs_created ON reminder_logs(created_at
 -- SELECT cron.schedule(
 --   'subscription-reminder-daily',
 --   '0 8 * * *',
---   'https://zpxobitwvitkidcmhlyg.supabase.co/functions/v1/subscription-reminder'
+--   'https://orjkjrdobjyctrsuiwek.supabase.co/functions/v1/subscription-reminder'
 -- );

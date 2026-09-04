@@ -135,7 +135,7 @@ Copy-Item config\config.example.json config\config.json
 Edit `.env` (use a strong random value — same as the Supabase secret `ZKTECO_WEBHOOK_SECRET`):
 
 ```dotenv
-SUPABASE_WEBHOOK_URL=https://zpxobitwvitkidcmhlyg.supabase.co/functions/v1/zkteco-webhook
+SUPABASE_WEBHOOK_URL=https://orjkjrdobjyctrsuiwek.supabase.co/functions/v1/zkteco-webhook
 ZKTECO_WEBHOOK_SECRET=<long-random-value-match-supabase-secret>
 CONNECTOR_ID=GYM_PC_001
 ```

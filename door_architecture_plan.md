@@ -175,7 +175,7 @@ On the SenseFace 3A touchscreen, go to **Communication → PUSH Settings** and s
 
 | Setting | Value |
 |---------|-------|
-| **Server URL** | `https://zpxobitwvitkidcmhlyg.supabase.co/functions/v1/zkteco-webhook` |
+| **Server URL** | `https://orjkjrdobjyctrsuiwek.supabase.co/functions/v1/zkteco-webhook` |
 | **Port** | `443` |
 | **Protocol** | `HTTP PUSH` |
 | **Events** | `CHECK_IN` |
@@ -212,7 +212,7 @@ SenseFace 3A matches biometric LOCALLY (in its own database)
 
 The webhook is already deployed at:
 ```
-https://zpxobitwvitkidcmhlyg.supabase.co/functions/v1/zkteco-webhook
+https://orjkjrdobjyctrsuiwek.supabase.co/functions/v1/zkteco-webhook
 ```
 
 ### 4. The Frontend (Web App) is a Dashboard
