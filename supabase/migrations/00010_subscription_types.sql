@@ -1,7 +1,7 @@
 -- ═══════════════════════════════════════════════════════════════════════════════
 --  Subscription Types (Tarifs des abonnements)
 --  ───────────────────────────────────────────────────────────────────────────────
---  Global price catalogue for the 5 subscription types (JOUR / MENS / TRIM / SEMI / ANNU).
+--  Global price catalogue for the 5 subscription types (JOUR/MENS/TRIM/SEMI/ANNU).
 --  Read/written from Paramètres → Tarifs des abonnements.
 --  Existing rows in `subscriptions` keep their historical prices (unchanged).
 -- ═══════════════════════════════════════════════════════════════════════════════

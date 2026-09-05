@@ -146,17 +146,32 @@ class PushReceiver {
       const raw = buf.toString('utf8');
       this.stat.received += 1;
 
+      // Log EVERY packet at INFO level (default) so nothing is invisible.
+      this.log.info('cvaccess.push.packet', {
+        receivedTotal: this.stat.received,
+        contentType: req.headers['content-type'] || '',
+        body: raw.slice(0, 8000),
+      });
+
       // capture-first: dump the real event shape once for field mapping
       if (this.captureFirst && !this.stat.captured) {
         this.stat.captured = 1;
         this.log.warn('cvaccess.push.capture', {
-          hint: 'first real event captured - map fields in config/config.json',
+          hint: 'first real packet captured - map fields in config/config.json',
           contentType: req.headers['content-type'] || '',
           body: raw.slice(0, 4000),
         });
       }
 
       const parsed = ParseBody(req.headers['content-type'] || '', buf);
+      this.log.debug('cvaccess.push.envelope', {
+        sid: parsed?.sid ?? undefined,
+        payloadKeys: parsed?.payload ? Object.keys(parsed.payload) : undefined,
+        hasTransactions: Array.isArray(parsed?.payload?.transactions),
+        topLevelArray: Array.isArray(parsed),
+        nTransactions: Array.isArray(parsed?.payload?.transactions) ? parsed.payload.transactions.length : 0,
+      });
+
       // CVAccess cloud push envelope: { payload: { transactions: [...] }, sid }
       let records;
       if (parsed && Array.isArray(parsed.payload?.transactions)) {
@@ -164,21 +179,66 @@ class PushReceiver {
       } else {
         records = Array.isArray(parsed) ? parsed : [parsed];
       }
+      const summary = { records: records.length, accepted: 0, filtered: 0 };
       for (const item of records) {
         if (!item || typeof item !== 'object') continue;
+        // Log a SANITIZED shape of every record (never biometrics/templates).
+        this.log.debug('cvaccess.push.record', {
+          id: item.id !== undefined ? item.id : undefined,
+          reId: item.reId !== undefined ? item.reId : undefined,
+          deviceSn: item.deviceSn !== undefined ? item.deviceSn : undefined,
+          deviceName: item.deviceName !== undefined ? item.deviceName : undefined,
+          eventName: item.eventName !== undefined ? item.eventName : undefined,
+          eventNameKey: item.eventNameKey !== undefined ? item.eventNameKey : undefined,
+          verifyType: item.verifyType !== undefined ? item.verifyType : undefined,
+          eventTime: item.eventTime !== undefined ? item.eventTime : undefined,
+          eventTypeCode: item.eventTypeCode !== undefined ? item.eventTypeCode : undefined,
+        });
         const out = normalizeEvent(
           item, this.cfg,
           { mapping: this.sourceCfg.mapping },
           { connectorId: this.connectorId }
         );
-        if (out.filtered) { this.stat.filtered += 1; continue; }
+        if (out.filtered) {
+          summary.filtered += 1;
+          this.stat.filtered += 1;
+          // Print filtered events at WARN so they are impossible to miss.
+          this.log.warn('cvaccess.push.filtered', {
+            reason: out.reason,
+            record: {
+              id: item.id !== undefined ? item.id : undefined,
+              reId: item.reId !== undefined ? item.reId : undefined,
+              deviceSn: item.deviceSn !== undefined ? item.deviceSn : undefined,
+              eventName: item.eventName !== undefined ? item.eventName : undefined,
+              verifyType: item.verifyType !== undefined ? item.verifyType : undefined,
+              eventTime: item.eventTime !== undefined ? item.eventTime : undefined,
+            },
+          });
+          continue;
+        }
+        summary.accepted += 1;
         this.stat.accepted += 1;
+        this.log.info('cvaccess.push.event', {
+          deviceId: out.normalized.deviceId,
+          userId: out.normalized.userId,
+          method: out.normalized.method,
+          timestamp: out.normalized.timestamp,
+          eventType: out.normalized.eventType,
+          eventId: out.normalized.eventId,
+        });
         if (this.onEvent) {
           await this.onEvent({ source: 'cvaccess-push', record: item, normalized: out.normalized });
         }
       }
+      this.log.info('cvaccess.push.summary', {
+        sid: parsed?.sid ?? undefined,
+        total: summary.records,
+        accepted: summary.accepted,
+        filtered: summary.filtered,
+        receivedTotal: this.stat.received,
+      });
       res.writeHead(202, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ accepted: true }));
+      res.end(JSON.stringify({ accepted: true, received: this.stat.received, acceptedEvents: this.stat.accepted }));
     });
   }
 }

@@ -291,6 +291,27 @@ async start() {
     this.queue.persist();
     this.cursors.persist();
     this.store.patch(this.countersToStore());
+
+    // Live proof-of-life at INFO level (default) - shows what the sources have
+    // received so far, so it is impossible to tell "nothing is happening".
+    const srcStats = {};
+    for (const item of this.sources) {
+      const s = item.src.stat || {};
+      srcStats[item.name] = {
+        received: s.received ?? s.polls ?? undefined,
+        accepted: s.accepted ?? s.fetched ?? undefined,
+        filtered: s.filtered ?? undefined,
+        lastError: s.lastError ?? undefined,
+      };
+    }
+    this.log.info('runner.alive', {
+      uptimeSec: Math.round(process.uptime()),
+      sources: srcStats,
+      counters: this.counters,
+      queueDepth: this.queue.counts().pending,
+      lastDecision: this.store.snapshot().lastDecision ?? undefined,
+      lastEventAt: this.store.snapshot().lastEventAt ?? undefined,
+    });
   }
 
   async stop() {

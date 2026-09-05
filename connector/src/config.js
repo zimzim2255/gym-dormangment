@@ -79,6 +79,26 @@ function loadConfig({ home = HOME } = {}) {
   const raw = JSON.parse(fs.readFileSync(configFile, 'utf8'));
   const cfg = expandDeep(raw);
 
+  // ── boolean coercion for flags that come from env as strings ("false" is
+  //    truthy in JS, so these MUST be real booleans before the sources check them)
+  const toBool = (v, fallback) => {
+    if (v === undefined || v === null || v === '') return fallback;
+    if (typeof v === 'boolean') return v;
+    const s = String(v).toLowerCase().trim();
+    if (s === 'true' || s === '1' || s === 'yes' || s === 'on') return true;
+    return false;
+  };
+  cfg.sources.cvaccessOpenApi.enabled = toBool(
+    cfg.sources?.cvaccessOpenApi?.enabled, false);
+  cfg.sources.cvaccessPush.enabled = toBool(
+    cfg.sources?.cvaccessPush?.enabled, false);
+  cfg.sources.cvaccessPush.captureFirst = toBool(
+    cfg.sources?.cvaccessPush?.captureFirst, true);
+  cfg.sources.cvaccessDb.enabled = toBool(
+    cfg.sources?.cvaccessDb?.enabled, false);
+  cfg.sources.mockFingerprint.enabled = toBool(
+    cfg.sources?.mockFingerprint?.enabled, false);
+
   // ── numeric coercion for the values we know must be numeric ────────────────
   cfg.connector.logLevel = cfg.connector?.logLevel || 'info';
   cfg.connector.logMaxDays = toInt(cfg.connector?.logMaxDays, 14);

@@ -164,6 +164,30 @@ node src\main.js status --json   # machine-readable
 
 With the mock source enabled you should see `event.captured` then
 `event.result` lines with `GRANTED`/`DENIED`.
+
+### Seeing EVERYTHING that flows through the push receiver
+
+The connector now logs every packet so nothing is invisible:
+
+| event | level | when |
+|-------|-------|------|
+| `cvaccess.push.packet` | **info** | every raw POST body received (default visible) |
+| `cvaccess.push.envelope` | debug | parsed `sid` + whether it had `payload.transactions` |
+| `cvaccess.push.record` | debug | sanitized shape of every record inside a batch |
+| `cvaccess.push.event` | **info** | a normalized event was accepted and forwarded |
+| `cvaccess.push.filtered` | **warn** | a record was dropped (shows the reason) |
+| `cvaccess.push.summary` | **info** | counts per batch + total received |
+| `runner.alive` | **info** | every 10s: uptime + source counters + last decision |
+
+- With the default `GDC_LOG_LEVEL=info` you already see **every packet**, **every
+  accepted event**, **every filtered record**, and a **live heartbeat every 10s**.
+- For the surrounding per-record/envelope detail run with `debug`:
+  ```powershell
+  $env:GDC_LOG_LEVEL='debug'
+  node src\main.js serve
+  ```
+- Filtered events are sanitized (id / reId / deviceSn / eventName / verifyType /
+  eventTime only) — biometrics are never logged.
 ### End-to-end self-test (no CVAccess needed)
 
 ```bash

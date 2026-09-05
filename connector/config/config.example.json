@@ -35,7 +35,7 @@
   },
   "sources": {
     "cvaccessOpenApi": {
-      "enabled": true,
+      "enabled": "${CVAACCESS_OPENAPI_ENABLED:-false}",
       "pollIntervalMs": 3000,
       "baseUrl": "${CVAACCESS_BASE_URL:}",
       "auth": {
@@ -74,7 +74,7 @@
     "cvaccessPush": {
       "enabled": "${CVACCESS_PUSH_ENABLED:-true}",
       "scheme": "${CVACCESS_PUSH_SCHEME:-http}",
-      "listenHost": "127.0.0.1",
+      "listenHost": "0.0.0.0",
       "listenPort": "${CVACCESS_PUSH_PORT:-8091}",
       "maxBodyBytes": 131072,
       "captureFirst": "${CVACCESS_PUSH_CAPTURE_FIRST:-true}",
