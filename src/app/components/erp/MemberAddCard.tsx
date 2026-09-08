@@ -19,9 +19,10 @@ export default function MemberAddCard({ form, setForm, onClose, onSave }: Member
   const [uploading, setUploading] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
 
-  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  // Shared upload routine used by both the file picker and paste (Ctrl+V).
+  const processImageFile = async (file: File) => {
+    if (!file || !file.type.startsWith("image/")) return;
+    if (file.size > 5 * 1024 * 1024) { window.alert("L'image dépasse 5MB. Choisissez une image plus légère."); return; }
     const localUrl = URL.createObjectURL(file);
     setPreview(localUrl);
     setUploading(true);
@@ -30,6 +31,29 @@ export default function MemberAddCard({ form, setForm, onClose, onSave }: Member
       setForm({ ...form, photo: url });
     } catch { setPreview(null); }
     finally { setUploading(false); }
+  };
+
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = "";
+    await processImageFile(file);
+  };
+
+  // Allow pasting an image copied to the clipboard (Ctrl+V) in the photo area.
+  const handlePaste = async (e: React.ClipboardEvent) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+    for (const item of items) {
+      if (item.type.startsWith("image/")) {
+        const file = item.getAsFile();
+        if (file) {
+          e.preventDefault();
+          await processImageFile(file);
+        }
+        return;
+      }
+    }
   };
 
   return (
@@ -80,7 +104,7 @@ export default function MemberAddCard({ form, setForm, onClose, onSave }: Member
             <Image className="w-4 h-4 text-[#EA5800]" />
             <h3 className="text-sm font-semibold text-white uppercase tracking-wider">Photo de profil (optionnelle)</h3>
           </div>
-          <div className="grid grid-cols-2 gap-6">
+          <div className="grid grid-cols-2 gap-6" tabIndex={0} onPaste={handlePaste} onFocus={e => { /* focusable so Ctrl+V works */ }}>
             <label className="cursor-pointer flex flex-col items-center justify-center border-2 border-dashed border-[#475569] rounded-xl p-8 hover:border-[#EA5800]/50 transition-colors min-h-[180px]">
               {uploading ? (
                 <div className="flex flex-col items-center gap-2">
@@ -95,8 +119,8 @@ export default function MemberAddCard({ form, setForm, onClose, onSave }: Member
                     <Upload className="w-5 h-5 text-[#94A3B0]" />
                   </div>
                   <span className="text-sm font-semibold text-white mb-1">Cliquez pour choisir une photo</span>
-                  <span className="text-xs text-[#94A3B0]">PNG, JPG ou WEBP</span>
-                  <span className="text-xs text-[#94A3B0]">Max 5MB</span>
+                  <span className="text-xs text-[#94A3B0]">PNG, JPG ou WEBP · Max 5MB</span>
+                  <span className="text-xs text-[#EA5800]/80">Ou collez une image ici (Ctrl+V)</span>
                 </>
               )}
               <input type="file" accept="image/*" onChange={handlePhotoUpload} className="hidden" disabled={uploading} />
