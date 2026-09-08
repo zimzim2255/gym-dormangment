@@ -376,33 +376,54 @@ serve(async (req: Request) => {
         return new Response(JSON.stringify({ cheques: data || [] }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
       case "cheque-create": {
+        const chequeId = (body.chequeId || "").trim();
+        const memberId = (body.memberId || "").trim();
+        const memberName = (body.memberName || "").trim();
+        const amount = Number(body.amount) || 0;
+        const date = (body.date || "").trim();
+        const dateEcheance = (body.dateEcheance || "").trim();
+
+        // ── Validation: renvoyer un 400 clair au lieu d'un 500 ───────
+        if (!chequeId || !date || !dateEcheance) {
+          return new Response(JSON.stringify({ error: "Le numéro de chèque et les dates sont obligatoires." }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        }
+        if (amount <= 0) {
+          return new Response(JSON.stringify({ error: "Le montant du chèque doit être supérieur à 0." }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        }
+        if (!memberId || !memberName) {
+          return new Response(JSON.stringify({ error: "Veuillez sélectionner un adhérent." }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        }
+
+        // Vérifier que l'adhérent existe (cheques.member_id → members.id)
+        const { data: member } = await supabase.from("members").select("id").eq("id", memberId).maybeSingle();
+        if (!member) {
+          return new Response(JSON.stringify({ error: "Adhérent introuvable, sélectionnez un adhérent valide." }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        }
+
         const { data, error } = await supabase.from("cheques").insert({
-          cheque_id: body.chequeId,
-          member_id: body.memberId,
-          member_name: body.memberName,
-          amount: body.amount || 0,
+          cheque_id: chequeId,
+          member_id: memberId,
+          member_name: memberName,
+          amount,
           used_amount: 0,
-          remaining: body.amount || 0,
-          date: body.date,
-          date_echeance: body.dateEcheance,
+          remaining: amount,
+          date,
+          date_echeance: dateEcheance,
           photo: body.photo || "",
           status: body.status || "En_attente",
         }).select().single();
         if (error) throw error;
 
         // Add cheque amount to caisse
-        const amount = body.amount || 0;
-        if (amount > 0) {
-          await supabase.rpc("update_caisse", { amount_change: amount });
-          await supabase.from("caisse_transactions").insert({
-            type: "vente",
-            label: `Chèque ${body.chequeId} - ${body.memberName || ""}`,
-            amount,
-            payment_method: "Chèque",
-            reference: body.chequeId,
-            date: body.date || today(),
-          });
-        }
+        await supabase.rpc("update_caisse", { amount_change: amount });
+        await supabase.from("caisse_transactions").insert({
+          type: "vente",
+          label: `Chèque ${chequeId} - ${memberName}`,
+          amount,
+          payment_method: "Chèque",
+          reference: chequeId,
+          date: date || today(),
+        });
 
         return new Response(JSON.stringify({ success: true, cheque: data }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }

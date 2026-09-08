@@ -278,21 +278,34 @@ cd C:\connector
 
 ## 9. Door relay / online authorization – honest status
 
-**We do not claim the door-control (relay) part works.** The SenseFace 3A is
-managed by CVAccess/ADMS itself; in the standard ADMS + external cloud
-validation setup there is **no documented, supported** channel to push a
-GRANTED/DENIED decision from Supabase back into the SenseFace relay in real
-time. So this connector:
+We do not claim the relay part is solved yet. The terminal fires the relay on a
+**LOCAL** biometric match, so a post-event DENIED (webhook) is always too late
+to stop the door. With this hardware the only enforcement that can work is
+making the local match FAIL for people who must not enter — by keeping their
+state in CVAccess (the terminal's source) locked / expired. That is the
+`control` layer:
 
-- **monitors** the real CVAccess fingerprint events,
-- **validates** each event in the cloud,
-- **records** the GRANTED/DENIED result locally (and in Supabase via the
-  webhook's own access log).
+- **`control/accessSync.js`** reads the Supabase allow-list (`allowed-members`
+  edge function: member Actif + subscription in range + paid) and writes
+  enable/lock + end-date into the **CVAccess local DB** (PostgreSQL 5442),
+  so the terminal refuses the rest locally. CLI: `node src/main.js sync-members
+  --dry-run` (no writes) then without `--dry-run`.
+- **`control/decisionApi.js`** (optional) exposes the same GRANTED/DENIED
+  decision as a local HTTP API (`127.0.0.1:8092`).
 
-The physical door release stays under **CVAccess access rules** (time windows /
-access group membership configured inside CVAccess). If you later need true
-real-time cloud-based relay control, that must be validated on-site with the
-actual SenseFace firmware/SDK variant — we will not fake an unverifiable
+Both are **disabled by default** (`ACCESS_SYNC_ENABLED=false`) because the
+CVAccess DB schema is private: we refuse to guess it. Before enabling:
+
+1. Discover the real tables (`tools/probe-cvaccess.ps1` on the gym PC) and fill
+   `CVACCESS_DB_*` in `.env` (or `control.cvaccessDb` in config).
+2. Deploy the helper edge function: `supabase functions deploy allowed-members`.
+3. Run `node src/main.js sync-members --dry-run` and confirm the diff.
+4. Apply, then prove it with ONE real scan of a suspended/expired user: the
+   terminal must refuse LOCALLY (no relay). Until that scan is seen, the door
+   is controlled by CVAccess access rules only, and we say so.
+
+The physical door release therefore stays under CVAccess access rules until the
+access-sync layer is proven on-site. We will not fake an unverifiable
 integration.
 
 ## 10. Rollout checklist (gym PC, over AnyDesk)
@@ -303,6 +316,7 @@ integration.
 4. Fill `.env` and `config\config.json` from that report.
 5. Add `ZKTECO_WEBHOOK_SECRET` to the Supabase edge function secrets
    (same value as `.env`).
+5b. Deploy the allow-list helper: `supabase functions deploy allowed-members`.
 6. Foreground smoke: `node src\main.js serve` (observe log lines).
 7. `.\install.ps1`, `.\start.ps1`, `.\status.ps1`.
 8. Live fingerprint at the door → confirm a GRANTED/DENIED log line.

@@ -99,6 +99,19 @@ function loadConfig({ home = HOME } = {}) {
   cfg.sources.mockFingerprint.enabled = toBool(
     cfg.sources?.mockFingerprint?.enabled, false);
 
+  // ── control layer (enforcement: allow-list sync + local decision API) ─────
+  // Disabled by default; enabled only after on-site CVAccess discovery.
+  if (!cfg.control) cfg.control = {};
+  cfg.control.enabled = toBool(cfg.control?.enabled, false);
+  cfg.control.syncIntervalMs = toInt(cfg.control?.syncIntervalMs, 300000);
+  if (!cfg.control.cvaccessDb) cfg.control.cvaccessDb = {};
+  cfg.control.cvaccessDb.enabled = toBool(cfg.control?.cvaccessDb?.enabled, false);
+  cfg.control.cvaccessDb.port = toInt(cfg.control?.cvaccessDb?.port, 5442);
+  if (!cfg.control.decisionApi) cfg.control.decisionApi = {};
+  cfg.control.decisionApi.enabled = toBool(cfg.control?.decisionApi?.enabled, false);
+  cfg.control.decisionApi.listenPort = toInt(cfg.control?.decisionApi?.listenPort, 8092);
+
+
   // ── numeric coercion for the values we know must be numeric ────────────────
   cfg.connector.logLevel = cfg.connector?.logLevel || 'info';
   cfg.connector.logMaxDays = toInt(cfg.connector?.logMaxDays, 14);

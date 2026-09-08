@@ -743,6 +743,7 @@ function Subscriptions() {
       const [subData, memberData, prices] = await Promise.all([subApi("list"), api("list"), getSubscriptionPrices()]);
       if (subData?.subscriptions) setSubscriptions(subData.subscriptions);
       if (memberData?.members) setMemberNames(memberData.members.map((m: any) => ({ id: m.id, name: m.name, phone: m.phone || "" })));
+      if (memberData?.members) setMembers(memberData.members.map((m: any) => ({ id: m.id, name: m.name })));
       if (prices?.length) {
         setSubTypes(prices);
         // Keep the default "Mensuel" price in sync with the real catalogue
@@ -871,11 +872,37 @@ function Subscriptions() {
           chequeForm={chequeForm}
           setChequeForm={setChequeForm}
           showChequeAdd={showChequeAdd}
-          onOpenChequeAdd={() => setShowChequeAdd(true)}
+          onOpenChequeAdd={() => {
+            const m = memberNames.find(x => x.name === form.member);
+            setChequeForm({
+              chequeId: "", memberId: m?.id || "", memberName: form.member || "",
+              amount: form.price || 0, date: today, dateEcheance: today,
+              photo: "", status: "En_attente",
+            });
+            setShowChequeAdd(true);
+          }}
           onCloseChequeAdd={() => setShowChequeAdd(false)}
           onSaveCheque={async () => {
-            const r = await boutiqueApi("cheque-create", chequeForm);
+            // Esprit de sécurité : récupérer l'adhérent depuis l'abonnement en cours
+            // si le formulaire chèque ne l'a pas (pré-remplissage ou sélection manuelle).
+            const m = memberNames.find(x => x.name === form.member) || { id: "", name: form.member || "" };
+            const payload = {
+              ...chequeForm,
+              chequeId: (chequeForm.chequeId || "").trim(),
+              amount: Number(chequeForm.amount) || 0,
+              date: (chequeForm.date || "").trim(),
+              dateEcheance: (chequeForm.dateEcheance || "").trim(),
+              memberId: (chequeForm.memberId || m.id || "").trim(),
+              memberName: (chequeForm.memberName || form.member || "").trim(),
+            };
+            if (!payload.memberName) {
+              window.alert("Veuillez sélectionner un adhérent avant d'enregistrer le chèque.");
+              return;
+            }
+            const r = await boutiqueApi("cheque-create", payload);
             if (r?.cheque) { setSelectedCheque(r.cheque); setShowChequeAdd(false); }
+            else if (r?.error) { window.alert(r.error); }
+            else if (!r) { window.alert("Erreur réseau / serveur. Vérifiez la connexion."); }
           }}
           chequeMembers={members}
         />

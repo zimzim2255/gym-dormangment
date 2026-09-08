@@ -24,6 +24,9 @@ Usage:
   node src/main.js serve                 run the connector (default)
   node src/main.js health                show status summary
   node src/main.js status --json         show status as JSON
+  node src/main.js sync-members [opts]  sync Supabase allow-list into the
+        --dry-run                       CVAccess local DB (no writes)
+
   node src/main.js inject [opts]         push one synthetic test event:
         --user ADH001  --device TERMINAL_001  --method fingerprint
         --event-type ACCESS              --timestamp 2026-08-22T18:00:31Z
@@ -106,6 +109,23 @@ async function inject(load, flags) {
   return 0;
 }
 
+// ── sync-members (manual allow-list sync CLI) ────────────────────────────────
+async function syncMembers(load, flags) {
+  const { AccessSync } = require('./control/accessSync');
+  const log = {
+    info: () => {},
+    warn: (evt, data) => (console.warn || console.log)(`${evt}`, data),
+    error: (evt, data) => console.error(`${evt}`, data),
+  };
+  const sync = new AccessSync({ cfg: load.cfg, log });
+  const dryRun = !!(flags['dry-run'] || flags.dryRun);
+  process.stdout.write(
+    `syncing Supabase allow-list into CVAccess local DB (dryRun=${dryRun})...\n`
+  );
+  const r = await sync.runOnce({ dryRun });
+  process.stdout.write(JSON.stringify({ dryRun, ...r }, null, 2) + '\n');
+  return r.error ? 2 : 0;
+}
 async function main() {
   const args = parseArgs(process.argv.slice(2));
   const load = loadConfig();
@@ -117,6 +137,9 @@ async function main() {
 
   if (args.command === 'health' || args.command === 'status') {
     return status(load, args.flags);
+  }
+  if (args.command === 'sync-members') {
+    return syncMembers(load, args.flags);
   }
   if (args.command === 'inject') {
     return inject(load, args.flags);

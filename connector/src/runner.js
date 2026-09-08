@@ -25,6 +25,8 @@ const { sendToWebhook } = require('./webhookClient');
 const { eventKey, toWire } = require('./normalizer');
 const { startSources } = require('./sources');
 const { TransientError } = require('./errors');
+const { startControl } = require('./control');
+
 
 class Runner {
   /**
@@ -43,6 +45,7 @@ class Runner {
     this.connectorId = load.cfg.connector.id;
     this.stopped = false;
     this.sources = [];
+this.controlItems = [];
     this.counters = {
       accepted: 0, filtered: 0, duplicated: 0, queued: 0,
       delivered: 0, deadLettered: 0, decisions: 0,
@@ -90,6 +93,17 @@ async start() {
       running: true,
     });
 
+    this.controlItems = await startControl({
+      cfg: this.cfg, paths: this.paths, log: this.logger,
+      connectorId: this.connectorId,
+    });
+    if (this.controlItems.length) {
+      this.store.patch({
+        sourcesRunning: this.sources.map((s) => s.name)
+          .concat(this.controlItems.map((c) => c.name)),
+        running: true,
+      });
+    }
     this.sweepTimer = setInterval(() => this.sweepQueue(), this.cfg.retry.sweepIntervalMs);
     if (this.sweepTimer.unref) this.sweepTimer.unref();
 
@@ -319,6 +333,9 @@ async start() {
     clearInterval(this.sweepTimer);
     clearInterval(this.heartbeatTimer);
     for (const item of this.sources) {
+      try { item.src.stop(); } catch (_) {}
+    }
+    for (const item of this.controlItems) {
       try { item.src.stop(); } catch (_) {}
     }
     this.dedupe.save();

@@ -33,6 +33,31 @@
       "5": "password"
     }
   },
+"control": {
+    "enabled": "${ACCESS_SYNC_ENABLED:-false}",
+    "syncIntervalMs": "${ACCESS_SYNC_INTERVAL_MS:-300000}",
+    "allowedList": {
+      "url": "${ALLOWED_MEMBERS_URL:-}"
+    },
+    "cvaccessDb": {
+      "enabled": "${ACCESS_SYNC_DB_ENABLED:-false}",
+      "driver": "psql",
+      "bin": "psql",
+      "host": "${CVACCESS_DB_HOST:-127.0.0.1}",
+      "port": "${CVACCESS_DB_PORT:-5442}",
+      "database": "${CVACCESS_DB_DATABASE:-}",
+      "user": "${CVACCESS_DB_USER:-}",
+      "password": "${CVACCESS_DB_PASS:-}",
+      "listQuery": "${CVACCESS_DB_LIST_QUERY:-}",
+      "enableUpdateQuery": "${CVACCESS_DB_ENABLE_UPDATE:-}",
+      "disableUpdateQuery": "${CVACCESS_DB_DISABLE_UPDATE:-}"
+    },
+    "decisionApi": {
+      "enabled": "${DECISION_API_ENABLED:-false}",
+      "listenHost": "127.0.0.1",
+      "listenPort": "${DECISION_API_PORT:-8092}"
+    }
+  },
   "sources": {
     "cvaccessOpenApi": {
       "enabled": "${CVAACCESS_OPENAPI_ENABLED:-false}",

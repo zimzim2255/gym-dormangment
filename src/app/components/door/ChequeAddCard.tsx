@@ -27,7 +27,7 @@ interface ChequeAddCardProps {
 
 export default function ChequeAddCard({ form, setForm, onClose, onSave, members }: ChequeAddCardProps) {
   const [uploading, setUploading] = useState(false);
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState(form.memberName);
   const [showSuggestions, setShowSuggestions] = useState(false);
 
   const filteredMembers = members.filter(m =>

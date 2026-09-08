@@ -1,0 +1,441 @@
+﻿{
+    "generatedAt":  "2026-09-08T12:46:32.8893294+01:00",
+    "host":  "DESKTOP-9NI0IE1",
+    "ipv4":  [
+                 "169.254.207.74",
+                 "169.254.23.79",
+                 "169.254.176.235",
+                 "169.254.227.38",
+                 "192.168.1.10"
+             ],
+    "operatingSystem":  "Microsoft Windows NT 10.0.22000.0",
+    "services":  [
+                     {
+                         "name":  "AssignedAccessManagerSvc",
+                         "display":  "Service AssignedAccessManager",
+                         "state":  "Stopped",
+                         "start":  "Manual",
+                         "path":  "C:\\Windows\\system32\\svchost.exe -k AssignedAccessManagerSvc"
+                     },
+                     {
+                         "name":  "BioPlatform Cache Service",
+                         "display":  "BioPlatform Cache Service",
+                         "state":  "Running",
+                         "start":  "Auto",
+                         "path":  "\"C:\\Program Files\\ZKBio CVAccess\\service/nssm.exe\""
+                     },
+                     {
+                         "name":  "BioPlatform Camera Service",
+                         "display":  "BioPlatform Camera Service",
+                         "state":  "Running",
+                         "start":  "Auto",
+                         "path":  "C:\\Program Files (x86)\\FPOnline\\bin\\CameraServer\\Camera_Service.exe"
+                     },
+                     {
+                         "name":  "BioPlatform Core Service",
+                         "display":  "BioPlatform Core Service",
+                         "state":  "Running",
+                         "start":  "Auto",
+                         "path":  "\"C:\\Program Files\\ZKBio CVAccess\\service/nssm.exe\""
+                     },
+                     {
+                         "name":  "BioPlatform CUServer Service",
+                         "display":  "BioPlatform CUServer Service",
+                         "state":  "Running",
+                         "start":  "Auto",
+                         "path":  "\"C:\\Program Files\\ZKBio CVAccess\\service/nssm.exe\""
+                     },
+                     {
+                         "name":  "BioPlatform Database Service",
+                         "display":  "BioPlatform Database Service",
+                         "state":  "Running",
+                         "start":  "Auto",
+                         "path":  "\"C:\\Program Files\\ZKBio CVAccess\\service/nssm.exe\""
+                     },
+                     {
+                         "name":  "BioPlatform DetectFace Service",
+                         "display":  "BioPlatform DetectFace Service",
+                         "state":  "Running",
+                         "start":  "Auto",
+                         "path":  "C:\\Program Files\\ZKBio CVAccess\\Pubs\\DetectFace\\ZKDetectFaceServer.exe"
+                     },
+                     {
+                         "name":  "BioPlatform Finger Service",
+                         "display":  "BioPlatform Finger Service",
+                         "state":  "Running",
+                         "start":  "Auto",
+                         "path":  "C:\\Program Files\\ZKBio CVAccess\\Pubs\\FPSDK\\zkfinger-served.exe"
+                     },
+                     {
+                         "name":  "BioPlatform ISSOnline Service",
+                         "display":  "BioPlatform ISSOnline Service",
+                         "state":  "Running",
+                         "start":  "Auto",
+                         "path":  "\"C:\\Program Files (x86)\\FPOnline\\bin\\ISSOnline.exe\" --"
+                     },
+                     {
+                         "name":  "BioPlatform Online Protect Service",
+                         "display":  "BioPlatform Online Protect Service",
+                         "state":  "Running",
+                         "start":  "Auto",
+                         "path":  "C:\\Program Files\\ZKBio CVAccess\\Pubs\\Protect\\ZKOnlineProtect.exe"
+                     },
+                     {
+                         "name":  "lmhosts",
+                         "display":  "Assistance NetBIOS sur TCP/IP",
+                         "state":  "Running",
+                         "start":  "Manual",
+                         "path":  "C:\\Windows\\System32\\svchost.exe -k LocalServiceNetworkRestricted -p"
+                     },
+                     {
+                         "name":  "vmicvmsession",
+                         "display":  "Service Hyper-V PowerShell Direct",
+                         "state":  "Stopped",
+                         "start":  "Manual",
+                         "path":  "C:\\Windows\\system32\\svchost.exe -k LocalSystemNetworkRestricted -p"
+                     },
+                     {
+                         "name":  "vmicvss",
+                         "display":  "Requête du service VSS Hyper-V",
+                         "state":  "Stopped",
+                         "start":  "Manual",
+                         "path":  "C:\\Windows\\system32\\svchost.exe -k LocalSystemNetworkRestricted -p"
+                     },
+                     {
+                         "name":  "WbioSrvc",
+                         "display":  "Service de biométrie Windows",
+                         "state":  "Stopped",
+                         "start":  "Manual",
+                         "path":  "C:\\Windows\\system32\\svchost.exe -k WbioSvcGroup"
+                     },
+                     {
+                         "name":  "XboxGipSvc",
+                         "display":  "Xbox Accessory Management Service",
+                         "state":  "Stopped",
+                         "start":  "Manual",
+                         "path":  "C:\\Windows\\system32\\svchost.exe -k netsvcs -p"
+                     },
+                     {
+                         "name":  "ZKBIOOnline Service",
+                         "display":  "ZKBIOOnline Service",
+                         "state":  "Running",
+                         "start":  "Auto",
+                         "path":  "C:\\Program Files (x86)\\FPOnline\\bin\\ZKBioOnline\\ZKBioOnline.exe"
+                     }
+                 ],
+    "listeners":  [
+                      {
+                          "port":  135,
+                          "address":  "::",
+                          "pid":  1360,
+                          "proc":  "svchost"
+                      },
+                      {
+                          "port":  135,
+                          "address":  "0.0.0.0",
+                          "pid":  1360,
+                          "proc":  "svchost"
+                      },
+                      {
+                          "port":  139,
+                          "address":  "192.168.1.10",
+                          "pid":  4,
+                          "proc":  "System"
+                      },
+                      {
+                          "port":  445,
+                          "address":  "::",
+                          "pid":  4,
+                          "proc":  "System"
+                      },
+                      {
+                          "port":  5040,
+                          "address":  "0.0.0.0",
+                          "pid":  9640,
+                          "proc":  "svchost"
+                      },
+                      {
+                          "port":  5442,
+                          "address":  "::1",
+                          "pid":  6496,
+                          "proc":  "postgres"
+                      },
+                      {
+                          "port":  5442,
+                          "address":  "127.0.0.1",
+                          "pid":  6496,
+                          "proc":  "postgres"
+                      },
+                      {
+                          "port":  6390,
+                          "address":  "::1",
+                          "pid":  7348,
+                          "proc":  "redis-server"
+                      },
+                      {
+                          "port":  6390,
+                          "address":  "127.0.0.1",
+                          "pid":  7348,
+                          "proc":  "redis-server"
+                      },
+                      {
+                          "port":  7070,
+                          "address":  "::",
+                          "pid":  14188,
+                          "proc":  "AnyDesk"
+                      },
+                      {
+                          "port":  7070,
+                          "address":  "0.0.0.0",
+                          "pid":  14188,
+                          "proc":  "AnyDesk"
+                      },
+                      {
+                          "port":  7680,
+                          "address":  "::",
+                          "pid":  4072,
+                          "proc":  "svchost"
+                      },
+                      {
+                          "port":  8088,
+                          "address":  "::",
+                          "pid":  8356,
+                          "proc":  "java"
+                      },
+                      {
+                          "port":  8091,
+                          "address":  "0.0.0.0",
+                          "pid":  11648,
+                          "proc":  "node"
+                      },
+                      {
+                          "port":  8098,
+                          "address":  "::",
+                          "pid":  8356,
+                          "proc":  "java"
+                      },
+                      {
+                          "port":  22001,
+                          "address":  "0.0.0.0",
+                          "pid":  4628,
+                          "proc":  "ZKBioOnline"
+                      },
+                      {
+                          "port":  22002,
+                          "address":  "0.0.0.0",
+                          "pid":  4628,
+                          "proc":  "ZKBioOnline"
+                      },
+                      {
+                          "port":  22003,
+                          "address":  "0.0.0.0",
+                          "pid":  4628,
+                          "proc":  "ZKBioOnline"
+                      },
+                      {
+                          "port":  24008,
+                          "address":  "0.0.0.0",
+                          "pid":  4344,
+                          "proc":  "ISSOnline"
+                      },
+                      {
+                          "port":  24308,
+                          "address":  "0.0.0.0",
+                          "pid":  4344,
+                          "proc":  "ISSOnline"
+                      },
+                      {
+                          "port":  26110,
+                          "address":  "0.0.0.0",
+                          "pid":  4328,
+                          "proc":  "ZKDetectFaceServer"
+                      },
+                      {
+                          "port":  26111,
+                          "address":  "0.0.0.0",
+                          "pid":  4328,
+                          "proc":  "ZKDetectFaceServer"
+                      },
+                      {
+                          "port":  28000,
+                          "address":  "127.0.0.1",
+                          "pid":  4316,
+                          "proc":  "Camera_Service"
+                      },
+                      {
+                          "port":  33686,
+                          "address":  "127.0.0.1",
+                          "pid":  14468,
+                          "proc":  "LocalServiceControl"
+                      },
+                      {
+                          "port":  38088,
+                          "address":  "127.0.0.1",
+                          "pid":  4336,
+                          "proc":  "zkfinger-served"
+                      },
+                      {
+                          "port":  42050,
+                          "address":  "::1",
+                          "pid":  7148,
+                          "proc":  "OneDrive.Sync.Service"
+                      },
+                      {
+                          "port":  49664,
+                          "address":  "::",
+                          "pid":  1116,
+                          "proc":  "lsass"
+                      },
+                      {
+                          "port":  49664,
+                          "address":  "0.0.0.0",
+                          "pid":  1116,
+                          "proc":  "lsass"
+                      },
+                      {
+                          "port":  49665,
+                          "address":  "::",
+                          "pid":  8,
+                          "proc":  "wininit"
+                      },
+                      {
+                          "port":  49665,
+                          "address":  "0.0.0.0",
+                          "pid":  8,
+                          "proc":  "wininit"
+                      },
+                      {
+                          "port":  49668,
+                          "address":  "0.0.0.0",
+                          "pid":  3040,
+                          "proc":  "svchost"
+                      },
+                      {
+                          "port":  49668,
+                          "address":  "::",
+                          "pid":  3040,
+                          "proc":  "svchost"
+                      },
+                      {
+                          "port":  49669,
+                          "address":  "::",
+                          "pid":  3308,
+                          "proc":  "svchost"
+                      },
+                      {
+                          "port":  49669,
+                          "address":  "0.0.0.0",
+                          "pid":  3308,
+                          "proc":  "svchost"
+                      },
+                      {
+                          "port":  49672,
+                          "address":  "::",
+                          "pid":  3924,
+                          "proc":  "spoolsv"
+                      },
+                      {
+                          "port":  49672,
+                          "address":  "0.0.0.0",
+                          "pid":  3924,
+                          "proc":  "spoolsv"
+                      },
+                      {
+                          "port":  49673,
+                          "address":  "::1",
+                          "pid":  5032,
+                          "proc":  "jhi_service"
+                      },
+                      {
+                          "port":  49676,
+                          "address":  "0.0.0.0",
+                          "pid":  1096,
+                          "proc":  "services"
+                      },
+                      {
+                          "port":  49676,
+                          "address":  "::",
+                          "pid":  1096,
+                          "proc":  "services"
+                      },
+                      {
+                          "port":  49890,
+                          "address":  "::",
+                          "pid":  14188,
+                          "proc":  "AnyDesk"
+                      },
+                      {
+                          "port":  49890,
+                          "address":  "0.0.0.0",
+                          "pid":  14188,
+                          "proc":  "AnyDesk"
+                      },
+                      {
+                          "port":  58097,
+                          "address":  "::",
+                          "pid":  5928,
+                          "proc":  "java"
+                      },
+                      {
+                          "port":  58098,
+                          "address":  "::",
+                          "pid":  5928,
+                          "proc":  "java"
+                      }
+                  ],
+    "installDirs":  [
+                        "C:\\Program Files\\ZKBio CVAccess",
+                        "C:\\Program Files\\ZKBio CVAccess\\Pubs\\Protect",
+                        "C:\\Program Files\\ZKBio CVAccess\\service"
+                    ],
+    "configFiles":  [
+                        "C:\\Program Files\\ZKBio CVAccess\\Config\\attsite.ini",
+                        "C:\\Program Files\\ZKBio CVAccess\\Config\\environmentalmonitor.ini",
+                        "C:\\Program Files\\ZKBio CVAccess\\Config\\en_US_inno.ini",
+                        "C:\\Program Files\\ZKBio CVAccess\\Config\\es_inno.ini",
+                        "C:\\Program Files\\ZKBio CVAccess\\Config\\log.ini",
+                        "C:\\Program Files\\ZKBio CVAccess\\Config\\module.ini",
+                        "C:\\Program Files\\ZKBio CVAccess\\Config\\setup.ini",
+                        "C:\\Program Files\\ZKBio CVAccess\\Config\\zh_CN_inno.ini",
+                        "C:\\Program Files\\ZKBio CVAccess\\Pubs\\DetectFace\\zkdetectface.ini",
+                        "C:\\Program Files\\ZKBio CVAccess\\Pubs\\FPSDK\\fpservedconfig.ini",
+                        "C:\\Program Files\\ZKBio CVAccess\\tools\\environment\\environmentalmonitor.ini"
+                    ],
+    "sqlServer":  "(no SQL instance named like CVAccess/SQLEXPRESS found)",
+    "openApi":  [
+                    {
+                        "url":  "http://localhost:8098/api/token/temp",
+                        "status":  "no-response",
+                        "error":  "Le serveur distant a retourné une erreur : (400) Demande incorrecte."
+                    },
+                    {
+                        "url":  "http://127.0.0.1:8090/api/token/temp",
+                        "status":  "no-response",
+                        "error":  "Impossible de se connecter au serveur distant"
+                    },
+                    {
+                        "url":  "http://127.0.0.1:8089/api/token/temp",
+                        "status":  "no-response",
+                        "error":  "Impossible de se connecter au serveur distant"
+                    }
+                ],
+    "notes":  [
+
+              ],
+    "summary":  {
+                    "servicesFound":  16,
+                    "pushPortsFound":  [
+                                           8088,
+                                           8098
+                                       ],
+                    "bioStackPorts":  [
+                                          5442,
+                                          5442,
+                                          6390,
+                                          6390,
+                                          38088
+                                      ],
+                    "openApiLive":  0,
+                    "sqlInstance":  "(no SQL instance named like CVAccess/SQLEXPRESS found)"
+                }
+}
