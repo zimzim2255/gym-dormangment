@@ -1,7 +1,7 @@
 -- ═══════════════════════════════════════════════════════════════════════════════
 --  Subscription Types (Tarifs des abonnements)
 --  ───────────────────────────────────────────────────────────────────────────────
---  Global price catalogue for the 5 subscription types (JOUR/MENS/TRIM/SEMI/ANNU).
+--  Global price catalogue for the 6 subscription types (JOUR/MENS/BIME/TRIM/SEMI/ANNU).
 --  Read/written from Paramètres → Tarifs des abonnements.
 --  Existing rows in `subscriptions` keep their historical prices (unchanged).
 -- ═══════════════════════════════════════════════════════════════════════════════
@@ -20,6 +20,7 @@ CREATE TABLE IF NOT EXISTS subscription_types (
 INSERT INTO subscription_types (code, name, duration, price, description, status) VALUES
   ('JOUR', 'Journalier', '1 jour', 30, 'Accès unique journée', 'Actif'),
   ('MENS', 'Mensuel', '1 mois', 200, 'Accès illimité 1 mois', 'Actif'),
+  ('BIME', 'Bimestriel', '2 mois', 380, '2 mois à prix avantageux', 'Actif'),
   ('TRIM', 'Trimestriel', '3 mois', 500, '3 mois économiques', 'Actif'),
   ('SEMI', 'Semestriel', '6 mois', 900, '6 mois à prix réduit', 'Actif'),
   ('ANNU', 'Annuel', '12 mois', 1600, 'Meilleure valeur', 'Actif')

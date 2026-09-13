@@ -136,6 +136,7 @@ const EXPENSES = [
 const SUB_TYPES_DATA = [
   { code: "JOUR", name: "Journalier", duration: "1 jour", price: 30, desc: "Accès unique journée", status: "Actif" },
   { code: "MENS", name: "Mensuel", duration: "1 mois", price: 200, desc: "Accès illimité 1 mois", status: "Actif" },
+  { code: "BIME", name: "Bimestriel", duration: "2 mois", price: 380, desc: "2 mois à prix avantageux", status: "Actif" },
   { code: "TRIM", name: "Trimestriel", duration: "3 mois", price: 500, desc: "3 mois économiques", status: "Actif" },
   { code: "SEMI", name: "Semestriel", duration: "6 mois", price: 900, desc: "6 mois à prix réduit", status: "Actif" },
   { code: "ANNU", name: "Annuel", duration: "12 mois", price: 1600, desc: "Meilleure valeur", status: "Actif" },
@@ -161,7 +162,7 @@ function computeEndDate(startDate: string, type: string) {
   const [day, month, year] = startDate.split("/").map(Number);
   if (!day || !month || !year) return "";
   const date = new Date(year, month - 1, day);
-  const months = type === "Journalier" ? 0 : type === "Mensuel" ? 1 : type === "Trimestriel" ? 3 : type === "Semestriel" ? 6 : type === "Annuel" ? 12 : 0;
+  const months = type === "Journalier" ? 0 : type === "Mensuel" ? 1 : type === "Bimestriel" ? 2 : type === "Trimestriel" ? 3 : type === "Semestriel" ? 6 : type === "Annuel" ? 12 : 0;
   date.setMonth(date.getMonth() + months);
   return date.toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit", year: "numeric" });
 }

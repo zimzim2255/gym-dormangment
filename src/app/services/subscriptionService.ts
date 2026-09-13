@@ -16,6 +16,7 @@ const ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || "";
 export const DEFAULT_SUB_TYPES: SubType[] = [
   { code: "JOUR", name: "Journalier", duration: "1 jour", price: 30, desc: "Accès unique journée", status: "Actif" },
   { code: "MENS", name: "Mensuel", duration: "1 mois", price: 200, desc: "Accès illimité 1 mois", status: "Actif" },
+  { code: "BIME", name: "Bimestriel", duration: "2 mois", price: 380, desc: "2 mois à prix avantageux", status: "Actif" },
   { code: "TRIM", name: "Trimestriel", duration: "3 mois", price: 500, desc: "3 mois économiques", status: "Actif" },
   { code: "SEMI", name: "Semestriel", duration: "6 mois", price: 900, desc: "6 mois à prix réduit", status: "Actif" },
   { code: "ANNU", name: "Annuel", duration: "12 mois", price: 1600, desc: "Meilleure valeur", status: "Actif" },
