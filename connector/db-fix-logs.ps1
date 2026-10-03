@@ -6,5 +6,5 @@ REM  SQL into the clipboard so you can just Ctrl+V in the SQL Editor.
 REM ═══════════════════════════════════════════════════════════════════════════
 Get-Content -Raw "%~dp0db-fix.sql" | Set-Clipboard
 Write-Host "[db-fix] SQL copied to clipboard. Paste it into Supabase SQL Editor and Run."
-Write-Host "[db-fix] Dashboard: https://supabase.com/dashboard/project/orjkjrdobjyctrsuiwek/sql"
-Start-Process "https://supabase.com/dashboard/project/orjkjrdobjyctrsuiwek/sql"
+Write-Host "[db-fix] Dashboard: https://supabase.com/dashboard/project/xquhrwwsgmtpycdzziyt/sql"
+Start-Process "https://supabase.com/dashboard/project/xquhrwwsgmtpycdzziyt/sql"

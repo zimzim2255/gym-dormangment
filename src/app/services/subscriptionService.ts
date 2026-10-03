@@ -10,7 +10,7 @@ export type SubType = {
   code: string; name: string; duration: string; price: number; desc: string; status: string;
 };
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "https://orjkjrdobjyctrsuiwek.supabase.co";
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "https://xquhrwwsgmtpycdzziyt.supabase.co";
 const ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || "";
 
 export const DEFAULT_SUB_TYPES: SubType[] = [

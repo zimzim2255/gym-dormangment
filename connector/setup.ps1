@@ -14,14 +14,14 @@
 #
 #  After running, set the printed secret on Supabase (from the project root):
 #     cd F:\techventur work\gym-project
-#     supabase secrets set --project-ref orjkjrdobjyctrsuiwek ZKTECO_WEBHOOK_SECRET=<printed-secret>
+#     supabase secrets set --project-ref xquhrwwsgmtpycdzziyt ZKTECO_WEBHOOK_SECRET=<printed-secret>
 # ═══════════════════════════════════════════════════════════════════════════════
 
 $ErrorActionPreference = 'Stop'
 $here = Split-Path -Parent $MyInvocation.MyCommand.Path
 Set-Location $here
 
-$url = 'https://orjkjrdobjyctrsuiwek.supabase.co/functions/v1/zkteco-webhook'
+$url = 'https://xquhrwwsgmtpycdzziyt.supabase.co/functions/v1/zkteco-webhook'
 
 # ── 1) Generate a crypto-random 64-hex secret (or reuse existing .env value) ──
 $existing = $null
@@ -76,6 +76,6 @@ Write-Host "└─────────────────────�
 Write-Host ""
 Write-Host "Next step - set the SAME secret on Supabase (from the project root):"
 Write-Host "  cd F:\techventur work\gym-project"
-Write-Host "  supabase secrets set --project-ref orjkjrdobjyctrsuiwek ZKTECO_WEBHOOK_SECRET=$secret"
+Write-Host "  supabase secrets set --project-ref xquhrwwsgmtpycdzziyt ZKTECO_WEBHOOK_SECRET=$secret"
 Write-Host ""
 Write-Host "[setup] Done. Start the connector with:  node src\main.js serve"

@@ -158,7 +158,17 @@ function connString(c) {
 }
 
 function runPsql(c, sql) {
-  const args = [connString(c), '-t', '-A', '-F', SQL_SEP, '-c', sql];
+  // Use psql's flag form with options BEFORE the command (-c). The bundled
+  // ZKBio psql rejects options placed after a positional connection string
+  // ("extra option ignored"), but -h/-p/-U/-d/-c are confirmed working:
+  //   psql -h <host> -p <port> -U <user> -d <db> -tA -F '|~|' -c '<sql>'
+  const args = ['-h', String(c.host || '127.0.0.1'), '-p', String(c.port || 5442)];
+  if (c.user) args.push('-U', String(c.user));
+  if (c.database) args.push('-d', String(c.database));
+  // -tA = tuples-only + unaligned; -F sets our delimiter so each line reads
+  // <id>|~|<enabled>. On a build that warns-but-continues, a warning still
+  // yields output; a hard error is surfaced below.
+  args.push('-tA', '-F', SQL_SEP, '-c', sql);
   return new Promise((resolve, reject) => {
     execFile(c.bin || 'psql', args, { timeout: 20000, maxBuffer: 4 * 1024 * 1024 }, (error, stdout, stderr) => {
       if (error) {

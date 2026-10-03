@@ -4,7 +4,7 @@
 //  Fetches real data from deployed Supabase edge functions
 // ═══════════════════════════════════════════════════════════════════════════════
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "https://orjkjrdobjyctrsuiwek.supabase.co";
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "https://xquhrwwsgmtpycdzziyt.supabase.co";
 const FUNCTIONS_URL = `${SUPABASE_URL}/functions/v1`;
 
 // ─── Get Access Logs ────────────────────────────────────────────────────────
